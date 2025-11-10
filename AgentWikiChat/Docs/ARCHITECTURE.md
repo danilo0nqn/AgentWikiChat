@@ -1,0 +1,1231 @@
+# ??? Arquitectura de AgentWikiChat
+
+## ?? Índice
+
+1. [Visión General](#visión-general)
+2. [Patrones de Diseño](#patrones-de-diseño)
+3. [Componentes Principales](#componentes-principales)
+4. [Flujo de Ejecución](#flujo-de-ejecución)
+5. [Patrón ReAct](#patrón-react)
+6. [Proveedores de IA](#proveedores-de-ia)
+7. [Sistema de Herramientas](#sistema-de-herramientas)
+8. [Gestión de Memoria](#gestión-de-memoria)
+9. [Seguridad](#seguridad)
+10. [Extensibilidad](#extensibilidad)
+11. [Diagramas](#diagramas)
+
+---
+
+## ?? Visión General
+
+**AgentWikiChat** es un sistema de agente conversacional multi-provider que implementa el patrón **ReAct (Reasoning and Acting)** para permitir razonamiento paso a paso con invocación automática de herramientas especializadas.
+
+### Objetivos de Diseño
+
+- **Modularidad**: Componentes desacoplados e intercambiables
+- **Extensibilidad**: Fácil adición de nuevos proveedores y herramientas
+- **Seguridad**: Validación estricta de operaciones peligrosas
+- **Observabilidad**: Logging completo y trazabilidad
+- **Multi-Provider**: Soporte unificado para diferentes LLMs
+
+### Tecnologías Base
+
+- **.NET 9**: Framework principal
+- **Dependency Injection**: Gestión de dependencias
+- **Configuration API**: Configuración flexible
+- **HttpClient**: Comunicación con APIs
+- **ADO.NET**: Acceso a datos (SqlClient, Npgsql)
+
+---
+
+## ?? Patrones de Diseño
+
+### 1. **Strategy Pattern** (Proveedores de IA)
+
+```
+IToolCallingService (Interface)
+    ?
+    ?? OllamaToolService
+    ?? OpenAIToolService
+    ?? LMStudioToolService
+    ?? AnthropicToolService
+```
+
+**Ventaja**: Cambiar de proveedor de IA sin modificar la lógica de negocio.
+
+### 2. **Factory Pattern** (Creación de Handlers)
+
+```csharp
+DatabaseHandlerFactory.CreateHandler(configuration)
+    ?
+  ?? SqlServerDatabaseHandler
+    ?? PostgreSqlDatabaseHandler
+```
+
+**Ventaja**: Creación dinámica basada en configuración.
+
+### 3. **Template Method Pattern** (Base Database Handler)
+
+```csharp
+BaseDatabaseHandler (abstract)
+ ?? ValidateQuery() // Implementado
+    ?? ExecuteQueryAsync() // Template
+    ?? GetProviderName() // Abstract
+```
+
+**Ventaja**: Comportamiento común con variaciones específicas.
+
+### 4. **Chain of Responsibility** (ReAct Loop)
+
+```
+User Query ? LLM ? Tool Call ? Handler ? Observation ? LLM ? ...
+```
+
+**Ventaja**: Procesamiento iterativo hasta obtener respuesta final.
+
+### 5. **Repository Pattern** (Memoria)
+
+```csharp
+MemoryService
+    ?? Global (List<Message>)
+    ?? Modules (Dictionary<string, List<Message>>)
+```
+
+**Ventaja**: Abstracción del almacenamiento de contexto conversacional.
+
+### 6. **Adapter Pattern** (Tool Definitions)
+
+```
+ToolDefinition (Universal)
+  ?
+    ?? OllamaTool
+    ?? OpenAITool
+ ?? LMStudioTool
+    ?? AnthropicTool
+```
+
+**Ventaja**: Formato unificado compatible con todos los proveedores.
+
+---
+
+## ?? Componentes Principales
+
+### Diagrama de Componentes
+
+```
+???????????????????????????????????????????????????????
+?    Program.cs ?
+?        (Entry Point + DI Setup)  ?
+???????????????????????????????????????????????????????
+         ?
+                  ?
+???????????????????????????????????????????????????????
+?              AgentOrchestrator    ?
+?  (Coordinator: LLM ? Tools ? Memory)              ?
+???????????????????????????????????????????????????????
+    ?                 ?      ?
+    ?    ?         ?
+???????????   ????????????????   ??????????????
+? ReAct   ?   ? IToolCalling ?   ?  Memory    ?
+? Engine  ?   ?   Service    ?   ?  Service   ?
+???????????   ????????????????   ??????????????
+    ?     ?
+    ?      ?
+???????????????   ???????????????????
+?   Tool      ?   ?   AI Providers  ?
+?  Handlers   ?   ?  (Ollama, etc.) ?
+???????????????   ???????????????????
+```
+
+---
+
+## ?? Componentes Detallados
+
+### 1. **Program.cs**
+**Responsabilidades:**
+- Configuración de Dependency Injection
+- Inicialización de servicios
+- Loop interactivo de consola
+- Gestión de comandos del usuario
+- Inicialización de logging
+
+**Dependencias:**
+- `ConfigurationBuilder`
+- `ServiceCollection`
+- `ConsoleLogger`
+
+### 2. **AgentOrchestrator**
+**Responsabilidades:**
+- Coordinar flujo entre usuario, LLM y handlers
+- Gestionar memoria conversacional
+- Decidir entre modo ReAct o legacy
+- Registrar herramientas en el servicio de IA
+
+**Dependencias:**
+- `IToolCallingService`
+- `IEnumerable<IToolHandler>`
+- `MemoryService`
+- `AgentConfig`
+- `ReActEngine`
+
+**Métodos Clave:**
+```csharp
+Task<string> ProcessQueryAsync(string userQuery)
+Task<string> HandleToolCallAsync(ToolCall toolCall)
+void PrintAvailableHandlers()
+```
+
+### 3. **ReActEngine**
+**Responsabilidades:**
+- Implementar el patrón ReAct (Thought ? Action ? Observation)
+- Ejecutar loops multi-herramienta
+- Detectar loops infinitos
+- Medir métricas de ejecución
+- Auto-corrección de errores
+
+**Dependencias:**
+- `IToolCallingService`
+- `Dictionary<string, IToolHandler>`
+- `MemoryService`
+- `AgentConfig`
+
+**Métodos Clave:**
+```csharp
+Task<AgentExecutionResult> ExecuteAsync(string userQuery, List<Message> historicalContext)
+Task<string> ExecuteToolAsync(ToolCall toolCall)
+```
+
+**Algoritmo ReAct:**
+```
+1. Inicializar contexto con historial
+2. LOOP (hasta MaxIterations o respuesta final):
+   a. Enviar contexto al LLM
+   b. Si respuesta directa ? FIN
+   c. Si tool_call:
+      i.   Detectar duplicados (prevención de loops)
+      ii.  Ejecutar herramienta
+      iii. Agregar observación al contexto
+      iv.  Continuar loop
+3. Retornar resultado con métricas
+```
+
+### 4. **MemoryService**
+**Responsabilidades:**
+- Almacenar historial de conversación global
+- Gestionar memoria modular por contexto
+- Proveer contexto a LLM
+- Limpieza selectiva de memoria
+
+**Estructura de Datos:**
+```csharp
+class MemoryService
+{
+    public List<Message> Global { get; }
+    private ConcurrentDictionary<string, List<Message>> _modules;
+}
+```
+
+**Módulos:**
+- `global`: Conversación principal
+- `react`: Pasos del motor ReAct
+- `database`: Consultas SQL ejecutadas
+- `wikipedia`: Búsquedas realizadas
+
+### 5. **ConsoleLogger**
+**Responsabilidades:**
+- Capturar toda salida de consola
+- Guardar sesiones en archivos únicos
+- Agregar timestamps y metadata
+- Formatear logs estructurados
+
+**Formato de Archivo:**
+```
+???????????????????????????????????????????????????????
+       AgentWikiChat - Session Log
+???????????????????????????????????????????????????????
+Session Started: 2025-01-06 14:30:52
+Machine: DESKTOP-ABC
+User: Admin
+OS: Windows 10
+.NET: 9.0.0
+???????????????????????????????????????????????????????
+
+[14:30:52.123] Usuario> ¿cuántos usuarios hay?
+[14:30:53.456] Bot> Hay 1,234 usuarios en la base de datos.
+
+???????????????????????????????????????????????????????
+Session Ended: 2025-01-06 14:35:10
+???????????????????????????????????????????????????????
+```
+
+---
+
+## ?? Flujo de Ejecución
+
+### Flujo Completo de una Consulta
+
+```
+???????????????
+?    User     ?
+?   Input  ?
+???????????????
+     ?
+?
+????????????????????????????????????????????
+?   AgentOrchestrator          ?
+?  1. Snapshot de contexto histórico   ?
+?  2. Agregar mensaje del usuario       ?
+????????????????????????????????????????????
+       ?
+       ?
+????????????????????????????????????????????
+?         ReActEngine     ?
+?  Loop (max 10 iteraciones):        ?
+?    1. LLM procesa contexto  ?
+?    2. Decide: responder o usar tool    ?
+?    3. Si tool ? ejecutar handler?
+?    4. Agregar observación al contexto    ?
+?    5. Repetir o finalizar      ?
+????????????????????????????????????????????
+       ?
+       ?
+????????????????????????????????????????????
+?      IToolCallingService      ?
+?  - Enviar request al proveedor ?
+?- Recibir respuesta con/sin tool_calls  ?
+????????????????????????????????????????????
+    ?
+ ?
+????????????????????????????????????????????
+? IToolHandler       ?
+?  - WikipediaHandler             ?
+?  - DatabaseToolHandler           ?
+?  - RAGToolHandler (futuro)     ?
+?  Ejecutar lógica específica     ?
+????????????????????????????????????????????
+       ?
+       ?
+????????????????????????????????????????????
+?       Respuesta Final          ?
+?  - Agregar a memoria global    ?
+?  - Retornar al usuario             ?
+????????????????????????????????????????????
+```
+
+### Ejemplo Concreto
+
+**Entrada:** "¿Cuántos usuarios hay en la BD?"
+
+```
+1. [User] ? AgentOrchestrator
+Mensaje: "¿Cuántos usuarios hay en la BD?"
+
+2. [AgentOrchestrator] ? MemoryService
+   Snapshot: [system, user1, assistant1, ..., user_nuevo]
+
+3. [AgentOrchestrator] ? ReActEngine
+   Contexto histórico + nueva consulta
+
+4. [ReActEngine] ? IToolCallingService
+   Enviar contexto al LLM
+
+5. [LLM] ? ReActEngine
+   Tool Call: query_database({query: "SELECT COUNT(*) FROM Users"})
+
+6. [ReActEngine] ? DatabaseToolHandler
+   Ejecutar consulta SQL
+
+7. [DatabaseToolHandler] ? BaseDatabaseHandler
+   Validar seguridad ? SqlServerDatabaseHandler ? DB
+
+8. [DB] ? DatabaseToolHandler
+   Resultado: 1,234 rows
+
+9. [DatabaseToolHandler] ? ReActEngine
+   Observación: "Resultado: 1,234 usuarios"
+
+10. [ReActEngine] ? IToolCallingService
+    Contexto actualizado con observación
+
+11. [LLM] ? ReActEngine
+    Respuesta: "Hay 1,234 usuarios en la base de datos."
+
+12. [ReActEngine] ? AgentOrchestrator
+    Resultado final
+
+13. [AgentOrchestrator] ? User
+    "Hay 1,234 usuarios en la base de datos."
+```
+
+---
+
+## ?? Patrón ReAct
+
+### ¿Qué es ReAct?
+
+**ReAct** = **Rea**soning + **Act**ing
+
+Patrón que combina:
+- **Razonamiento** (Thought): El LLM piensa qué hacer
+- **Acción** (Action): El LLM decide usar una herramienta
+- **Observación** (Observation): Resultado de la herramienta
+
+### Ciclo ReAct
+
+```
+????????????????????????????????????????????
+? Thought (Razonamiento)           ?
+?  "Necesito saber cuántos usuarios hay"  ?
+????????????????????????????????????????????
+             ?
+    ?
+????????????????????????????????????????????
+?    Action (Acción)      ?
+?  Tool: query_database        ?
+?  Args: {query: "SELECT COUNT(*)..."}     ?
+????????????????????????????????????????????
+          ?
+                ?
+????????????????????????????????????????????
+?       Observation (Observación)          ?
+?  Resultado: 1,234 usuarios     ?
+????????????????????????????????????????????
+    ?
+ ?
+      ¿Suficiente información?
+          ??
+         SÍ      NO
+          ?      ?
+     ?              ?
+    Responder     Repetir ciclo
+```
+
+### Ventajas del Patrón ReAct
+
+1. **Razonamiento Transparente**: Puedes ver el proceso de pensamiento
+2. **Multi-Step**: Permite usar varias herramientas en secuencia
+3. **Auto-Corrección**: El agente puede corregir errores
+4. **Flexibilidad**: Se adapta dinámicamente según la necesidad
+
+### Configuración del ReAct
+
+```json
+{
+  "Agent": {
+    "MaxIterations": 10,    // Máximo de ciclos
+    "EnableReActPattern": true,        // Activar ReAct
+    "EnableMultiToolLoop": true,  // Múltiples herramientas
+    "ShowIntermediateSteps": true,          // Mostrar pasos
+    "EnableSelfCorrection": true,           // Auto-corrección
+"PreventDuplicateToolCalls": true,      // Anti-loops
+    "MaxConsecutiveDuplicates": 3           // Max duplicados
+  }
+}
+```
+
+### Detección de Loops Infinitos
+
+**Problema:** El LLM puede invocar la misma herramienta repetidamente.
+
+**Solución:**
+```csharp
+if (currentTool == lastTool && currentArgs == lastArgs) {
+    consecutiveDuplicates++;
+    if (consecutiveDuplicates >= MaxConsecutiveDuplicates) {
+        // Forzar terminación
+   return lastObservation;
+    }
+}
+```
+
+---
+
+## ?? Proveedores de IA
+
+### Arquitectura Multi-Provider
+
+```
+??????????????????????????????????????????????
+?       IToolCallingService (Interface)       ?
+??????????????????????????????????????????????
+? + RegisterTool(ToolDefinition)     ?
+? + RegisterTools(IEnumerable<ToolDef>)      ?
+? + SendMessageWithToolsAsync(...)           ?
+? + GetProviderName()          ?
+??????????????????????????????????????????????
+             ?
+    ??????????????????????????????????????????
+    ?     ?          ? ?
+???????????   ?????????????????????   ???????????
+? Ollama  ?   ?  OpenAI  ?   ?  LM   ?   ?Anthropic?
+? Tool    ?   ?   Tool   ? ?Studio ?   ?  Tool   ?
+? Service ?   ?  Service ?   ?Service?   ? Service ?
+???????????   ????????????   ?????????   ???????????
+```
+
+### Implementaciones
+
+#### 1. **OllamaToolService**
+- **Endpoint**: `http://localhost:11434/api/chat`
+- **Formato**: Ollama native format
+- **Streaming**: Soportado
+- **Modelos**: qwen2.5:7b-instruct, llama3, etc.
+
+#### 2. **OpenAIToolService**
+- **Endpoint**: `https://api.openai.com/v1/chat/completions`
+- **Formato**: OpenAI Function Calling
+- **Streaming**: No implementado
+- **Modelos**: gpt-4-turbo, gpt-3.5-turbo
+
+#### 3. **LMStudioToolService**
+- **Endpoint**: `http://localhost:1234/v1/chat/completions`
+- **Formato**: Compatible OpenAI
+- **Streaming**: No
+- **Modelos**: Cualquier modelo cargado en LM Studio
+
+#### 4. **AnthropicToolService**
+- **Endpoint**: `https://api.anthropic.com/v1/messages`
+- **Formato**: Anthropic native (tools)
+- **Streaming**: Soportado
+- **Modelos**: claude-3-opus, claude-3-5-sonnet
+
+### Formato Unificado de Tool Definition
+
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "query_database",
+    "description": "Ejecuta consultas SQL SELECT",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+    "description": "Consulta SQL"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+}
+```
+
+### ToolCallingServiceFactory
+
+**Responsabilidad:** Crear el servicio apropiado según configuración.
+
+```csharp
+public static IToolCallingService CreateService(
+    HttpClient httpClient, 
+    IConfiguration config)
+{
+    var provider = config["AI:ActiveProvider"];
+    var providerConfig = GetProviderConfig(config, provider);
+    
+    return providerConfig.Type switch
+    {
+        "Ollama" => new OllamaToolService(...),
+    "OpenAI" => new OpenAIToolService(...),
+        "LMStudio" => new LMStudioToolService(...),
+        "Anthropic" => new AnthropicToolService(...),
+      _ => throw new NotSupportedException()
+    };
+}
+```
+
+---
+
+## ??? Sistema de Herramientas
+
+### Interfaz IToolHandler
+
+```csharp
+public interface IToolHandler
+{
+    string ToolName { get; }
+    ToolDefinition GetToolDefinition();
+    Task<string> HandleAsync(ToolParameters parameters, MemoryService memory);
+}
+```
+
+### Herramientas Implementadas
+
+#### 1. **WikipediaHandler** (Multi-Tool)
+
+```
+WikipediaHandler
+    ?? search_wikipedia_titles
+    ?    ?? Busca títulos de artículos
+    ?? get_wikipedia_article
+         ?? Obtiene contenido completo
+```
+
+**Flujo:**
+1. Usuario pide información sobre "C#"
+2. LLM invoca `search_wikipedia_titles(query="C#")`
+3. Handler busca en Wikidata ? obtiene ["C Sharp", "C", "C++"]
+4. LLM analiza resultados ? invoca `get_wikipedia_article(title="C Sharp")`
+5. Handler obtiene artículo completo de Wikipedia
+6. LLM procesa y responde al usuario
+
+#### 2. **DatabaseToolHandler** (Single-Tool)
+
+```
+DatabaseToolHandler
+    ?? query_database
+         ?? Validación de seguridad
+         ?? IDatabaseHandler (Factory)
+         ?    ?? SqlServerDatabaseHandler
+         ?    ?? PostgreSqlDatabaseHandler
+         ?? Formateo de resultados
+```
+
+**Seguridad:**
+- ? Permitido: SELECT, WITH, WHERE, JOIN, GROUP BY, etc.
+- ? Bloqueado: INSERT, UPDATE, DELETE, DROP, EXEC, etc.
+
+**Validación:**
+```csharp
+public ValidationResult ValidateQuery(string query)
+{
+// 1. Verificar que comience con SELECT
+    if (!StartsWithSelect(query))
+        return Fail("Solo SELECT permitido");
+    
+    // 2. Verificar lista negra
+    if (ContainsBlockedKeyword(query))
+        return Fail("Palabra clave prohibida");
+    
+    // 3. Verificar múltiples instrucciones
+    if (HasMultipleStatements(query))
+        return Fail("Solo una instrucción");
+    
+    return Success();
+}
+```
+
+#### 3. **RAGToolHandler** (Futuro)
+- Búsqueda vectorial en documentos
+- Embeddings con OpenAI/local
+- Vector database (Qdrant, Chroma)
+
+#### 4. **SVNRepositoryToolHandler** (Futuro)
+- Consultas a repositorios SVN
+- Historial de commits
+- Búsqueda de archivos
+
+### Registro de Herramientas
+
+```csharp
+// En AgentOrchestrator
+foreach (var handler in handlers)
+{
+    if (handler.GetType().GetMethod("GetAllToolDefinitions") != null)
+    {
+        // Handler con múltiples tools
+      var tools = handler.GetAllToolDefinitions();
+        foreach (var tool in tools)
+{
+       _handlers[tool.Function.Name] = handler;
+     allTools.Add(tool);
+        }
+    }
+    else
+    {
+    // Handler con una sola tool
+        _handlers[handler.ToolName] = handler;
+        allTools.Add(handler.GetToolDefinition());
+    }
+}
+
+_toolService.RegisterTools(allTools);
+```
+
+---
+
+## ?? Gestión de Memoria
+
+### Arquitectura de Memoria
+
+```
+????????????????????????????????????????????
+?          MemoryService          ?
+????????????????????????????????????????????
+?  Global: List<Message>   ?
+?    ?? [system] System prompt        ?
+?    ?? [user] Query 1      ?
+?    ?? [assistant] Response 1           ?
+?    ?? [user] Query 2        ?
+?    ?? [assistant] Response 2     ?
+?          ?
+?  Modules: Dictionary<string, List<Msg>>  ?
+?    ?? "react": Pasos ReAct     ?
+?    ?? "database": Queries ejecutadas     ?
+?    ?? "wikipedia": Búsquedas ?
+????????????????????????????????????????????
+```
+
+### Tipos de Memoria
+
+#### 1. **Memoria Global**
+- Conversación principal usuario ? asistente
+- Se envía como contexto en cada llamada al LLM
+- Persiste durante toda la sesión
+
+```csharp
+memory.AddToGlobal("user", "¿Cuántos usuarios hay?");
+memory.AddToGlobal("assistant", "Hay 1,234 usuarios.");
+```
+
+#### 2. **Memoria Modular**
+- Contextos específicos por herramienta/funcionalidad
+- No se envía al LLM (solo para tracking interno)
+- Útil para debugging y auditoría
+
+```csharp
+memory.AddToModule("database", "system", "Query: SELECT COUNT(*)...");
+memory.AddToModule("react", "tool", "Iteration 2: query_database");
+```
+
+### Formato de Mensaje
+
+```csharp
+public class Message
+{
+    public string Role { get; set; }      // "user", "assistant", "system", "tool"
+    public string Content { get; set; }   // Contenido del mensaje
+    public DateTime Timestamp { get; set; }
+}
+```
+
+### Gestión de Contexto
+
+**Problema:** El contexto crece indefinidamente.
+
+**Soluciones Implementadas:**
+1. Comando `/limpiar` para resetear memoria
+2. Límite implícito de tokens en LLM (truncamiento automático)
+
+**Soluciones Futuras:**
+- Windowing (últimos N mensajes)
+- Summarization (resumir conversación antigua)
+- Importance scoring (mantener solo mensajes importantes)
+
+---
+
+## ?? Seguridad
+
+### Capas de Seguridad
+
+#### 1. **Validación de Consultas SQL**
+
+```
+User Query ? LLM ? Tool Call ? DatabaseToolHandler
+      ?
+          [Validación de Seguridad]
+          ?
+       ¿Pasa validación?
+                ?           ?
+ SÍ        NO
+                  ?        ?
+      ?           ?
+           Ejecutar    Rechazar
+```
+
+**Reglas:**
+- Solo `SELECT` al inicio (case-insensitive)
+- Bloqueo de palabras clave peligrosas
+- No múltiples instrucciones (`;`)
+- No comentarios inline (`--`)
+
+#### 2. **Límite de Filas**
+
+```csharp
+// En configuración
+"MaxRowsToReturn": 100
+
+// En ejecución
+SELECT TOP 100 ... -- SQL Server
+SELECT ... LIMIT 100 -- PostgreSQL
+```
+
+**Previene:** Consultas que retornen millones de filas.
+
+#### 3. **Timeout de Comandos**
+
+```json
+{
+  "Database": {
+ "CommandTimeout": 90  // segundos
+  }
+}
+```
+
+**Previene:** Consultas que tarden indefinidamente.
+
+#### 4. **Connection String Segura**
+
+```json
+{
+  "Database": {
+    "ConnectionString": "Server=...;Integrated Security=True;"
+  }
+}
+```
+
+**Recomendaciones:**
+- Usar Integrated Security cuando sea posible
+- Almacenar passwords en Azure Key Vault / AWS Secrets
+- No versionar `appsettings.json` con credenciales
+
+#### 5. **Exclusión de Logs**
+
+```gitignore
+# .gitignore
+Logs/
+*.log
+appsettings.Development.json
+```
+
+**Previene:** Exposición de datos sensibles en repositorio.
+
+---
+
+## ?? Extensibilidad
+
+### Agregar Nuevo Proveedor de IA
+
+#### Paso 1: Implementar IToolCallingService
+
+```csharp
+public class MyAIToolService : IToolCallingService
+{
+    public void RegisterTool(ToolDefinition tool) { /* ... */ }
+    public void RegisterTools(IEnumerable<ToolDefinition> tools) { /* ... */ }
+    public IReadOnlyList<ToolDefinition> GetRegisteredTools() { /* ... */ }
+    
+    public async Task<ToolCallingResponse> SendMessageWithToolsAsync(
+     string message,
+        IEnumerable<Message> context,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Convertir formato unificado ? formato específico del proveedor
+        // 2. Hacer HTTP request al API
+        // 3. Parsear respuesta
+ // 4. Convertir formato específico ? formato unificado
+        // 5. Retornar ToolCallingResponse
+    }
+    
+    public string GetProviderName() => "MyAI";
+}
+```
+
+#### Paso 2: Agregar al Factory
+
+```csharp
+// En ToolCallingServiceFactory.cs
+return providerConfig.Type switch
+{
+    "Ollama" => new OllamaToolService(...),
+    "OpenAI" => new OpenAIToolService(...),
+    "MyAI" => new MyAIToolService(...),  // ? Nueva línea
+    _ => throw new NotSupportedException()
+};
+```
+
+#### Paso 3: Configurar en appsettings.json
+
+```json
+{
+  "AI": {
+    "ActiveProvider": "MyAI-Provider",
+    "Providers": [
+      {
+        "Name": "MyAI-Provider",
+        "Type": "MyAI",
+        "BaseUrl": "https://api.myai.com",
+        "ApiKey": "sk-...",
+     "Model": "mymodel-v1",
+        "Temperature": 0.7,
+   "MaxTokens": 2048,
+        "TimeoutSeconds": 120
+      }
+    ]
+  }
+}
+```
+
+### Agregar Nueva Herramienta (Tool)
+
+#### Paso 1: Crear Handler
+
+```csharp
+public class MyToolHandler : IToolHandler
+{
+    public string ToolName => "my_tool";
+
+    public ToolDefinition GetToolDefinition()
+    {
+   return new ToolDefinition
+        {
+            Type = "function",
+  Function = new FunctionDefinition
+  {
+     Name = "my_tool",
+            Description = "Descripción de lo que hace",
+   Parameters = new FunctionParameters
+ {
+         Type = "object",
+ Properties = new Dictionary<string, PropertyDefinition>
+    {
+           ["param1"] = new PropertyDefinition
+         {
+            Type = "string",
+         Description = "Descripción del parámetro"
+            }
+              },
+     Required = new List<string> { "param1" }
+          }
+            }
+        };
+    }
+
+    public async Task<string> HandleAsync(ToolParameters parameters, MemoryService memory)
+    {
+        var param1 = parameters.GetString("param1");
+        
+        // Lógica de la herramienta
+      var result = await DoSomethingAsync(param1);
+        
+        // Guardar en memoria modular (opcional)
+        memory.AddToModule("my_tool", "system", $"Executed: {param1}");
+        
+    return result;
+    }
+}
+```
+
+#### Paso 2: Registrar en DI
+
+```csharp
+// En Program.cs
+services.AddSingleton<IToolHandler, MyToolHandler>();
+```
+
+¡Listo! El `AgentOrchestrator` lo detecta automáticamente.
+
+### Agregar Nuevo Proveedor de BD
+
+#### Paso 1: Crear Handler heredando BaseDatabaseHandler
+
+```csharp
+public class MySqlDatabaseHandler : BaseDatabaseHandler
+{
+    public override string ProviderName => "MySQL";
+
+    public MySqlDatabaseHandler(string connectionString, int commandTimeout)
+    : base(connectionString, commandTimeout)
+    {
+    }
+
+    protected override IDbConnection CreateConnection()
+    {
+        return new MySqlConnection(_connectionString);
+ }
+
+    protected override string ApplyRowLimit(string query, int maxRows)
+    {
+     // MySQL usa LIMIT
+        return $"{query} LIMIT {maxRows}";
+    }
+
+    public override async Task<List<string>> GetTablesAsync()
+    {
+        var query = "SHOW TABLES";
+   // ... implementación ...
+    }
+
+    public override async Task<List<ColumnInfo>> GetTableSchemaAsync(string tableName)
+    {
+    var query = $"DESCRIBE {tableName}";
+        // ... implementación ...
+    }
+}
+```
+
+#### Paso 2: Actualizar Factory
+
+```csharp
+// En DatabaseHandlerFactory.cs
+return provider.ToLower() switch
+{
+    "sqlserver" => new SqlServerDatabaseHandler(...),
+    "postgresql" or "postgres" => new PostgreSqlDatabaseHandler(...),
+    "mysql" => new MySqlDatabaseHandler(...),  // ? Nueva línea
+    _ => throw new NotSupportedException()
+};
+```
+
+#### Paso 3: Configurar
+
+```json
+{
+  "Database": {
+    "Provider": "MySQL",
+    "ConnectionString": "Server=localhost;Database=mydb;Uid=root;Pwd=pass;"
+  }
+}
+```
+
+---
+
+## ?? Diagramas
+
+### Diagrama de Clases (Simplificado)
+
+```
+????????????????????????
+?     Program.cs ?
+????????????????????????
+      ?
+      ?
+????????????????????????????????????????
+?      AgentOrchestrator          ?
+????????????????????????????????????????
+? - _toolService: IToolCallingService  ?
+? - _handlers: Dictionary<str, IToolH>?
+? - _memory: MemoryService    ?
+? - _reactEngine: ReActEngine     ?
+????????????????????????????????????????
+? + ProcessQueryAsync(string)          ?
+? + HandleToolCallAsync(ToolCall)      ?
+????????????????????????????????????????
+           ?
+    ???????????????????????????????
+    ?          ?        ?
+??????????   ???????????????   ??????????
+? ReAct  ?   ? IToolCalling?   ? Memory ?
+? Engine ?   ?   Service   ? ?Service ?
+??????????   ???????????????   ??????????
+```
+
+### Diagrama de Secuencia (Query SQL)
+
+```
+User         Orchestrator    ReActEngine    IToolCallingService    DatabaseHandler    DB
+ ?             ?       ?            ?  ?        ?
+ ??Query??????????>?      ?        ?       ?          ?
+ ?     ?????Execute????>?  ?         ?          ?
+ ?      ?        ?????SendMessage???>?        ? ?
+ ?             ?  ?       ?????HTTP Request??> (LLM)
+ ?      ?        ?        ?<???Tool Call??????
+ ?                  ?     ?<??ToolCallResp?????
+ ? ?    ?       ?        ?          ?
+ ??          ?????????ExecuteTool????????????????????>?       ?
+ ?       ? ?           ?         ???Query??>?
+ ?             ?   ?         ?      ?<?Result???
+ ?       ?       ?<????????Observation????????????????????
+ ?             ?   ?????SendMessage???>?
+ ?          ?      ?        ?????HTTP Request??> (LLM)
+ ?       ?        ??<???Final Answer????
+ ?       ?          ?<??FinalResponse????
+ ?           ?<???Result???????
+ ?<?Response?????????
+```
+
+### Diagrama de Estados (ReAct Loop)
+
+```
+      ??????????
+      ?  Init  ?
+      ??????????
+          ?
+     ?
+    ????????????
+    ? Thinking ? ??????????????
+    ????????????      ?
+          ?   ?
+       ?        ?
+    ¿Tool Call?       ?
+      ?   ?               ?
+    SÍ         NO       ?
+     ?          ?      ?
+     ?      ?     ?
+???????????  ????????        ?
+? Execute ?  ? Done ?        ?
+?  Tool   ?  ????????        ?
+???????????                  ?
+     ?  ?
+   ?          ?
+????????????    ?
+?Observation??????????????????
+????????????
+```
+
+---
+
+## ?? Métricas y Observabilidad
+
+### Métricas Capturadas
+
+```csharp
+public class AgentExecutionResult
+{
+    public bool Success { get; set; }
+    public string FinalAnswer { get; set; }
+    public List<ReActStep> Steps { get; set; }
+    public int TotalIterations { get; }
+    public int ToolCallsCount { get; }
+    public long TotalDurationMs { get; set; }
+    public string TerminationReason { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+}
+```
+
+### Logging Estructurado
+
+**Niveles:**
+- ?? INFO: Flujo normal (iteraciones, herramientas)
+- ?? SUCCESS: Respuesta obtenida
+- ?? WARNING: Loops detectados, límites alcanzados
+- ?? ERROR: Excepciones, errores de herramientas
+- ? DEBUG: Detalles técnicos (solo en verbose)
+
+**Ejemplo de Output:**
+```
+??????????????????????????????????????????????????????????
+?? Iteración 1/10
+??????????????????????????????????????????????????????????
+?? Herramienta invocada: query_database
+?? Argumentos: {"query":"SELECT COUNT(*) FROM Users"}
+??? Observación: Resultado: 1,234 usuarios
+??????????????????????????????????????????????????????????
+?? Iteración 2/10
+??????????????????????????????????????????????????????????
+? Respuesta final obtenida (sin herramientas)
+
+?? Resumen de ejecución:
+   ?? Duración total: 1,234ms
+   ?? Iteraciones: 2
+   ??? Herramientas usadas: 1
+   ? Estado: Éxito
+   ?? Razón: Respuesta directa del LLM
+```
+
+---
+
+## ?? Mejores Prácticas
+
+### Para Developers
+
+1. **Usar DI**: No crear instancias manualmente
+2. **Logging**: Usar `ConsoleLogger` para debugging
+3. **Async/Await**: Todas las operaciones I/O deben ser async
+4. **Excepciones**: Capturar y loggear, no propagar al usuario
+5. **Configuración**: Todo configurable en `appsettings.json`
+6. **Testing**: Probar con diferentes proveedores
+
+### Para System Prompt
+
+```
+Sos Chuleta, un asistente experto con acceso a herramientas.
+
+??? HERRAMIENTAS DISPONIBLES:
+1. Wikipedia: search_wikipedia_titles ? get_wikipedia_article
+2. Base de Datos: query_database (solo SELECT)
+
+?? INSTRUCCIONES:
+- Evaluá qué herramienta usar según la consulta
+- Podés usar múltiples herramientas en secuencia
+- Si una herramienta falla, explicá el error y sugerí alternativas
+- Siempre respondé de forma clara y concisa
+```
+
+### Para Configuración de Modelos
+
+**Temperatura:**
+- `0.1-0.3`: Respuestas precisas, predecibles (producción)
+- `0.7`: Balance creatividad/precisión (recomendado)
+- `0.9-1.0`: Respuestas creativas, variadas (exploración)
+
+**Max Tokens:**
+- Ollama: 2048-4096
+- OpenAI: 2000-4096
+- Anthropic: 4096-8192
+- LM Studio: Según modelo
+
+---
+
+## ?? Arquitectura Futura
+
+### Mejoras Planeadas
+
+#### 1. **Caché de Embeddings**
+```
+Query ? Check Cache ? Si existe: retornar
+          ? Si no: generar + guardar
+```
+
+#### 2. **Worker Pool para Herramientas**
+```
+Tool Call 1 ???
+Tool Call 2 ????? [Worker Pool] ?? Parallel Execution
+Tool Call 3 ???
+```
+
+#### 3. **Streaming de Respuestas**
+```
+LLM ? Token 1 ? Token 2 ? Token 3 ? ...
+       ?    ?          ?
+     Print      Print      Print  (Real-time)
+```
+
+#### 4. **Multi-Modal**
+```
+User Input: "Analiza esta imagen"
+    ?
+Vision Tool ? Image Analysis ? Text Description
+    ?
+LLM ? Respuesta basada en descripción
+```
+
+#### 5. **Distributed Agent System**
+```
+Master Agent
+    ?? SQL Agent (especializado en BD)
+    ?? Research Agent (especializado en búsqueda)
+    ?? Code Agent (especializado en código)
+```
+
+---
+
+## ?? Referencias
+
+- **ReAct Paper**: [Yao et al., 2023](https://arxiv.org/abs/2210.03629)
+- **Function Calling**: [OpenAI Docs](https://platform.openai.com/docs/guides/function-calling)
+- **Tool Use (Anthropic)**: [Anthropic Docs](https://docs.anthropic.com/claude/docs/tool-use)
+- **Ollama**: [GitHub](https://github.com/ollama/ollama)
+- **LM Studio**: [Official Site](https://lmstudio.ai/)
+
+---
+
+## ?? Contacto
+
+¿Preguntas sobre la arquitectura?
+- ?? Email: arquitectura@example.com
+- ?? Discord: AgentWikiChat Community
+- ?? Wiki: [GitHub Wiki](https://github.com/yourusername/AgentWikiChat/wiki)
+
+---
+
+**Versión**: 1.0.0  
+**Fecha**: 2025-01-06  
+**Autor**: AgentWikiChat Team
+
+---
+
+<p align="center">
+  <i>Esta arquitectura está en constante evolución. Contribuciones bienvenidas! ??</i>
+</p>
