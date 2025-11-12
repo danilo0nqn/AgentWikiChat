@@ -260,6 +260,14 @@ AgentWikiChat/
 
 ---
 
+## 👥 Autores
+ 
+- **Fernando Bequir** - *fernandobequir@gmail.com*
+- **Francisco Fontanini** - *fjfontanini@gmail.com*
+- **Danilo Del Collado** - *daniloddc.92@gmail.com*
+- **Francisco Troncoso** - *tonio2007@gmail.com*
+
+---
 ## 📄 Licencia
 
 MIT
