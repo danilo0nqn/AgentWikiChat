@@ -1,4 +1,4 @@
-using System.Diagnostics;
+Ôªøusing System.Diagnostics;
 using AgentWikiChat.Configuration;
 using AgentWikiChat.Models;
 using AgentWikiChat.Services.AI;
@@ -7,8 +7,8 @@ using AgentWikiChat.Services.Handlers;
 namespace AgentWikiChat.Services;
 
 /// <summary>
-/// Motor ReAct (Reasoning + Acting) que ejecuta loops de herramientas m˙ltiples.
-/// Implementa el patrÛn: Thought ? Action ? Observation ? Repeat hasta terminar.
+/// Motor ReAct (Reasoning + Acting) que ejecuta loops de herramientas m√∫ltiples.
+/// Implementa el patr√≥n: Thought ‚Üí Action ‚Üí Observation ‚Üí Repeat hasta terminar.
 /// </summary>
 public class ReActEngine
 {
@@ -36,8 +36,8 @@ public class ReActEngine
     /// Ejecuta el loop ReAct completo para una consulta del usuario.
     /// </summary>
     /// <param name="userQuery">Consulta del usuario</param>
-    /// <param name="historicalContext">Contexto histÛrico de la conversaciÛn</param>
-    /// <returns>Resultado completo de la ejecuciÛn con mÈtricas</returns>
+    /// <param name="historicalContext">Contexto hist√≥rico de la conversaci√≥n</param>
+    /// <returns>Resultado completo de la ejecuci√≥n con m√©tricas</returns>
     public async Task<AgentExecutionResult> ExecuteAsync(string userQuery, List<Message> historicalContext)
     {
         var result = new AgentExecutionResult
@@ -56,7 +56,7 @@ public class ReActEngine
 
         try
         {
-            LogInfo($"?? Iniciando ReAct Loop (m·x {_config.MaxIterations} iteraciones)");
+            LogInfo($"[INICIO] üîÑ ReAct Loop (m√°x {_config.MaxIterations} iteraciones)");
 
             for (int iteration = 1; iteration <= _config.MaxIterations; iteration++)
             {
@@ -64,16 +64,29 @@ public class ReActEngine
                 var stepStopwatch = Stopwatch.StartNew();
 
                 LogInfo($"\n{'=',-60}");
-                LogInfo($"?? IteraciÛn {iteration}/{_config.MaxIterations}");
+                LogInfo($"[ITERACION üîÑ {iteration}/{_config.MaxIterations}]");
                 LogInfo($"{'=',-60}");
 
                 // Enviar mensaje al LLM con contexto actual
                 var response = await _toolService.SendMessageWithToolsAsync(
-            userQuery,
-                currentContext
-             );
+                    userQuery,
+                    currentContext
+                );
 
-                // Caso 1: El LLM respondiÛ directamente sin tool calls (terminÛ)
+                // üìä Trackear tokens de esta iteraci√≥n
+                if (response.TokenUsage != null)
+                {
+                    step.TokenUsage = response.TokenUsage;
+                    result.TokenMetrics.Add(response.TokenUsage);
+
+                    // Mostrar m√©tricas de tokens si est√° en modo debug o ShowIntermediateSteps
+                    if (_config.ShowIntermediateSteps || _debugMode)
+                    {
+                        LogTokens($"[TOKENS] üìä Iteraci√≥n {iteration}: {response.TokenUsage.FormatCompact()}");
+                    }
+                }
+
+                // Caso 1: El LLM respondi√≥ directamente sin tool calls (termin√≥)
                 if (!response.HasToolCalls)
                 {
                     step.IsComplete = true;
@@ -81,7 +94,8 @@ public class ReActEngine
                     step.DurationMs = stepStopwatch.ElapsedMilliseconds;
                     result.Steps.Add(step);
 
-                    LogSuccess($"? Respuesta final obtenida (sin herramientas)");
+                    Console.WriteLine();
+                    LogSuccess($"‚úÖ Respuesta final obtenida (sin herramientas)");
 
                     result.FinalAnswer = step.FinalAnswer;
                     result.Success = true;
@@ -89,7 +103,7 @@ public class ReActEngine
                     break;
                 }
 
-                // Caso 2: El LLM invocÛ herramientas
+                // Caso 2: El LLM invoc√≥ herramientas
                 // Primero, agregar el mensaje del assistant con tool_calls al contexto
                 if (response.ToolCalls != null && response.ToolCalls.Any())
                 {
@@ -107,13 +121,13 @@ public class ReActEngine
                     step.ActionArguments == lastToolArgs)
                     {
                         consecutiveDuplicates++;
-                        LogWarning($"??  Detectado: misma herramienta invocada {consecutiveDuplicates} veces consecutivas");
+                        LogWarning($"‚ö†Ô∏è  Detectado: misma herramienta invocada {consecutiveDuplicates} veces consecutivas");
 
                         if (consecutiveDuplicates >= _config.MaxConsecutiveDuplicates)
                         {
-                            LogWarning($"?? Loop detectado! Forzando terminaciÛn...");
+                            LogWarning($"üîÅ Loop detectado! Forzando terminaci√≥n...");
 
-                            // Usar la ˙ltima observaciÛn como respuesta
+                            // Usar la √∫ltima observaci√≥n como respuesta
                             var lastObservation = result.Steps.LastOrDefault()?.Observation;
                             if (!string.IsNullOrEmpty(lastObservation))
                             {
@@ -138,25 +152,25 @@ public class ReActEngine
                     lastToolName = step.ActionTool;
                     lastToolArgs = step.ActionArguments;
 
-                    LogTool($"???  Herramienta invocada: {step.ActionTool}");
-                    LogDebug($"?? Argumentos: {step.ActionArguments}");
+                    LogTool($"[TOOL] üõ†Ô∏è  Herramienta invocada: {step.ActionTool}");
+                    LogDebug($"üìù Argumentos: {step.ActionArguments}");
 
                     // Ejecutar handler
                     var observation = await ExecuteToolAsync(toolCall);
                     step.Observation = observation;
 
-                    LogObservation($"???  ObservaciÛn: {TruncateForDisplay(observation, 500)}");
+                    LogObservation($"üëÅÔ∏è  Observaci√≥n: {TruncateForDisplay(observation, 500)}");
 
-                    // Agregar la observaciÛn al contexto con instrucciones claras para el LLM
+                    // Agregar la observaci√≥n al contexto con instrucciones claras para el LLM
                     currentContext.Add(new Message("tool", observation, toolCall.Id));
 
-                    // Agregar instrucciÛn explÌcita para que el LLM responda
+                    // Agregar instrucci√≥n expl√≠cita para que el LLM responda
                     if (iteration == 1)
                     {
                         currentContext.Add(new Message("system",
-                       "Ahora que tenÈs la informaciÛn de la herramienta, " +
-                     "respondÈ al usuario con los datos obtenidos. " +
-                              "NO invoques m·s herramientas a menos que realmente necesites informaciÛn adicional diferente."));
+                       "Ahora que ten√©s la informaci√≥n de la herramienta, " +
+                     "respond√© al usuario con los datos obtenidos. " +
+                              "NO invoques m√°s herramientas a menos que realmente necesites informaci√≥n adicional diferente."));
                     }
 
                     // Guardar en memoria modular
@@ -166,44 +180,44 @@ public class ReActEngine
                 step.DurationMs = stepStopwatch.ElapsedMilliseconds;
                 result.Steps.Add(step);
 
-                // Si no estamos en modo multi-tool loop, salir despuÈs de la primera tool
+                // Si no estamos en modo multi-tool loop, salir despu√©s de la primera tool
                 if (!_config.EnableMultiToolLoop)
                 {
-                    result.FinalAnswer = step.Observation ?? "EjecuciÛn completada";
+                    result.FinalAnswer = step.Observation ?? "Ejecuci√≥n completada";
                     result.Success = true;
                     result.TerminationReason = "Modo single-tool (multi-tool desactivado)";
                     break;
                 }
 
-                // Continuar el loop para permitir que el LLM procese la observaciÛn
+                // Continuar el loop para permitir que el LLM procese la observaci√≥n
             }
 
-            // Si llegamos al lÌmite de iteraciones sin respuesta final
+            // Si llegamos al l√≠mite de iteraciones sin respuesta final
             if (!result.Success)
             {
-                // Usar la ˙ltima observaciÛn como respuesta si existe
+                // Usar la √∫ltima observaci√≥n como respuesta si existe
                 var lastObservation = result.Steps.LastOrDefault()?.Observation;
                 if (!string.IsNullOrEmpty(lastObservation))
                 {
                     result.FinalAnswer = lastObservation;
                     result.Success = true;
-                    result.TerminationReason = $"LÌmite de {_config.MaxIterations} iteraciones - usando ˙ltima observaciÛn";
+                    result.TerminationReason = $"L√≠mite de {_config.MaxIterations} iteraciones - usando √∫ltima observaci√≥n";
                 }
                 else
                 {
-                    result.FinalAnswer = "Se alcanzÛ el lÌmite de iteraciones sin completar la tarea.";
-                    result.TerminationReason = $"LÌmite de {_config.MaxIterations} iteraciones alcanzado";
+                    result.FinalAnswer = "Se alcanz√≥ el l√≠mite de iteraciones sin completar la tarea.";
+                    result.TerminationReason = $"L√≠mite de {_config.MaxIterations} iteraciones alcanzado";
                 }
 
-                LogWarning($"??  {result.TerminationReason}");
+                LogWarning($"‚ö†Ô∏è  {result.TerminationReason}");
             }
         }
         catch (Exception ex)
         {
             result.Success = false;
-            result.FinalAnswer = $"Error durante la ejecuciÛn: {ex.Message}";
-            result.TerminationReason = $"ExcepciÛn: {ex.GetType().Name}";
-            LogError($"? Error: {ex.Message}");
+            result.FinalAnswer = $"Error durante la ejecuci√≥n: {ex.Message}";
+            result.TerminationReason = $"Excepci√≥n: {ex.GetType().Name}";
+            LogError($"‚ùå Error: {ex.Message}");
         }
         finally
         {
@@ -211,26 +225,41 @@ public class ReActEngine
             result.EndTime = DateTime.Now;
             result.TotalDurationMs = stopwatch.ElapsedMilliseconds;
 
-            LogInfo($"\n?? Resumen de ejecuciÛn:");
-            LogInfo($"   ??  DuraciÛn total: {result.TotalDurationMs}ms");
-            LogInfo($"   ?? Iteraciones: {result.TotalIterations}");
-            LogInfo($"   ???  Herramientas usadas: {result.ToolCallsCount}");
-            var estadoTexto = result.Success ? "…xito" : "Fallo";
-            LogInfo($"   ? Estado: {estadoTexto}");
-            LogInfo($"   ?? RazÛn: {result.TerminationReason}");
+            LogInfo($"\n[M√âTRICAS] üìä Resumen de ejecuci√≥n");
+            LogInfo($"   ‚è±Ô∏è Duraci√≥n total: {result.TotalDurationMs}ms");
+            LogInfo($"   üîÑ Iteraciones: {result.TotalIterations}");
+            LogInfo($"   üõ†Ô∏è Herramientas usadas: {result.ToolCallsCount}");
+            var estadoTexto = result.Success ? "√âxito" : "Fallo";
+            LogInfo($"   ‚úÖ Estado: {estadoTexto}");
+            LogInfo($"   üìù Raz√≥n: {result.TerminationReason}");
+
+            // üìä Mostrar resumen de tokens
+            if (result.TokenMetrics.CallCount > 0)
+            {
+                // Detectar si es un proveedor de pago para mostrar costos
+                var providerName = _toolService.GetProviderName().ToLowerInvariant();
+                var isPaidProvider = providerName.Contains("openai") ||
+                                    providerName.Contains("anthropic") ||
+                                    providerName.Contains("claude") ||
+                                    providerName.Contains("gemini") ||
+                                    providerName.Contains("google");
+
+                LogInfo($"\n{result.TokenMetrics.FormatSummary(showCost: isPaidProvider)}");
+                Console.WriteLine();
+            }
         }
 
         return result;
     }
 
     /// <summary>
-    /// Ejecuta una herramienta especÌfica.
+    /// Ejecuta una herramienta espec√≠fica.
     /// </summary>
     private async Task<string> ExecuteToolAsync(ToolCall toolCall)
     {
         if (!_handlers.TryGetValue(toolCall.Function.Name, out var handler))
         {
-            return $"?? Error: No existe handler para la herramienta '{toolCall.Function.Name}'";
+            return $"‚ö†Ô∏è Error: No existe handler para la herramienta '{toolCall.Function.Name}'";
         }
 
         try
@@ -241,7 +270,7 @@ public class ReActEngine
         }
         catch (Exception ex)
         {
-            var errorMsg = $"? Error ejecutando {toolCall.Function.Name}: {ex.Message}";
+            var errorMsg = $"‚ùå Error ejecutando {toolCall.Function.Name}: {ex.Message}";
             LogError(errorMsg);
             return errorMsg;
         }
@@ -311,6 +340,16 @@ public class ReActEngine
         if (_debugMode && _config.VerboseMode)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(message);
+            Console.ResetColor();
+        }
+    }
+
+    private void LogTokens(string message)
+    {
+        if (_config.ShowIntermediateSteps || _debugMode)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
             Console.WriteLine(message);
             Console.ResetColor();
         }

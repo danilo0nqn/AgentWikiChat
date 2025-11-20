@@ -12,7 +12,7 @@ public class ToolCallingResponse
     public string? Content { get; set; }
 
     /// <summary>
-    /// Lista de herramientas que el LLM decidiÛ invocar.
+    /// Lista de herramientas que el LLM decidi√≥ invocar.
     /// </summary>
     public List<ToolCall>? ToolCalls { get; set; }
 
@@ -22,7 +22,7 @@ public class ToolCallingResponse
     public string Role { get; set; } = "assistant";
 
     /// <summary>
-    /// Indica si la respuesta est· completa (usado por algunos proveedores).
+    /// Indica si la respuesta est√° completa (usado por algunos proveedores).
     /// </summary>
     public bool Done { get; set; } = true;
 
@@ -30,6 +30,11 @@ public class ToolCallingResponse
     /// Metadata adicional del proveedor (opcional).
     /// </summary>
     public Dictionary<string, object>? Metadata { get; set; }
+
+    /// <summary>
+    /// M√©tricas de uso de tokens (si el proveedor las proporciona).
+    /// </summary>
+    public TokenUsage? TokenUsage { get; set; }
 
     /// <summary>
     /// Verifica si hay tool calls en la respuesta.

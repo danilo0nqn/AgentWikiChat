@@ -20,7 +20,7 @@ public class DatabaseToolHandler : IToolHandler
     {
         // Crear handler apropiado usando factory (multi-provider)
         _dbHandler = DatabaseHandlerFactory.CreateHandler(configuration);
-        
+
         // Obtener configuración del proveedor activo
         _providerConfig = DatabaseHandlerFactory.GetActiveProviderConfig(configuration);
 
@@ -37,7 +37,7 @@ public class DatabaseToolHandler : IToolHandler
             Function = new FunctionDefinition
             {
                 Name = ToolName,
-                Description = $"Ejecuta consultas SELECT en la base de datos ({_providerConfig.Name} - {_dbHandler.ProviderName}). SOLO LECTURA - No permite modificaciones (INSERT, UPDATE, DELETE). Usa esta herramienta para obtener información de tablas, ejecutar queries, o generar reportes basados en datos.",
+                Description = $"Ejecuta consultas SELECT en base de datos {_providerConfig.Name}. SOLO LECTURA (no INSERT/UPDATE/DELETE). Si no conocés nombres de tablas/columnas, usa explore_database_schema PRIMERO.",
                 Parameters = new FunctionParameters
                 {
                     Type = "object",
@@ -46,12 +46,12 @@ public class DatabaseToolHandler : IToolHandler
                         ["query"] = new PropertyDefinition
                         {
                             Type = "string",
-                            Description = "Consulta SQL SELECT a ejecutar. IMPORTANTE: Solo SELECT permitido, sin subconsultas con modificaciones."
+                            Description = "Consulta SQL SELECT a ejecutar. Solo SELECT permitido."
                         },
                         ["max_rows"] = new PropertyDefinition
                         {
                             Type = "string",
-                            Description = $"Número máximo de filas a retornar (por defecto: {_providerConfig.MaxRowsToReturn}). Usa valores menores para queries grandes."
+                            Description = $"Máximo de filas a retornar (por defecto: {_providerConfig.MaxRowsToReturn})"
                         }
                     },
                     Required = new List<string> { "query" }
@@ -98,7 +98,7 @@ public class DatabaseToolHandler : IToolHandler
         {
             // Ejecutar consulta
             var result = await _dbHandler.ExecuteQueryAsync(query, maxRows);
-            
+
             // Guardar en memoria modular
             memory.AddToModule("database", "system", $"Query ejecutada en {_providerConfig.Name}: {TruncateForDisplay(query, 100)} - Rows: {result.RowCount}");
 
@@ -125,7 +125,7 @@ public class DatabaseToolHandler : IToolHandler
 
         output.AppendLine($"📊 **Resultado de la Consulta**\n");
         output.AppendLine($"**Proveedor**: {_providerConfig.Name} ({_dbHandler.ProviderName})");
-        
+
         // Mostrar query ejecutada (truncada)
         output.AppendLine($"**Query**: `{TruncateForDisplay(query, 200)}`");
         output.AppendLine($"**Filas retornadas**: {result.RowCount}");
@@ -155,7 +155,7 @@ public class DatabaseToolHandler : IToolHandler
         for (int i = 0; i < rowsToShow; i++)
         {
             output.Append("| ");
-            var formattedValues = result.Rows[i].Select(v => 
+            var formattedValues = result.Rows[i].Select(v =>
                 v == null ? "*NULL*" : TruncateForDisplay(v.ToString() ?? "", 50)
             );
             output.Append(string.Join(" | ", formattedValues));

@@ -16,7 +16,7 @@ public static class VersionControlHandlerFactory
     /// <returns>Instancia del handler apropiado</returns>
     public static IVersionControlHandler CreateHandler(IConfiguration configuration)
     {
-        var repoSection = configuration.GetSection("Repository");
+        var repoSection = configuration.GetSection("Tools").GetSection("Repository");
         
         var activeProvider = repoSection.GetValue<string>("ActiveProvider")
             ?? throw new InvalidOperationException("Repository:ActiveProvider no configurado en appsettings.json");
@@ -95,7 +95,7 @@ public static class VersionControlHandlerFactory
     /// </summary>
     public static RepositoryProviderConfig GetActiveProviderConfig(IConfiguration configuration)
     {
-        var repoSection = configuration.GetSection("Repository");
+        var repoSection = configuration.GetSection("Tools").GetSection("Repository");
         
         var activeProvider = repoSection.GetValue<string>("ActiveProvider")
             ?? throw new InvalidOperationException("Repository:ActiveProvider no configurado");

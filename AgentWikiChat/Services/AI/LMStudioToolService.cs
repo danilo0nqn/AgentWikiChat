@@ -35,7 +35,7 @@ public class LMStudioToolService : IToolCallingService
         var provider = providers.FirstOrDefault(p => p.Name == activeProviderName);
 
         if (provider == null)
-            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuraci�n");
+            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuración");
 
         _providerName = provider.Name;
         _baseUrl = provider.BaseUrl;
@@ -66,12 +66,12 @@ public class LMStudioToolService : IToolCallingService
     public IReadOnlyList<ToolDefinition> GetRegisteredTools() => _tools.AsReadOnly();
 
     /// <summary>
-    /// Env�a un mensaje con contexto y herramientas disponibles.
+    /// Envía un mensaje con contexto y herramientas disponibles.
     /// LM Studio usa API compatible con OpenAI.
     /// </summary>
     public async Task<ToolCallingResponse> SendMessageWithToolsAsync(
         string message,
-      IEnumerable<Message> context,
+        IEnumerable<Message> context,
         CancellationToken cancellationToken = default)
     {
         var messages = context.Select(m => new LMStudioMessage
@@ -105,7 +105,7 @@ public class LMStudioToolService : IToolCallingService
             });
 
             if (result == null || result.Choices == null || !result.Choices.Any())
-                throw new InvalidOperationException("Respuesta vac�a de LM Studio");
+                throw new InvalidOperationException("Respuesta vacía de LM Studio");
 
             var choice = result.Choices.First();
             var responseMessage = choice.Message;
@@ -126,12 +126,30 @@ public class LMStudioToolService : IToolCallingService
                 }).ToList();
             }
 
+            // 📊 ESTIMAR MÉTRICAS DE TOKENS (LM Studio puede o no devolverlas)
+            var allMessages = context.ToList();
+            allMessages.Add(new Message("user", message));
+            
+            var promptTokens = TokenEstimator.EstimateTokensFromMessages(allMessages);
+            var completionTokens = TokenEstimator.EstimateTokens(responseMessage.Content ?? string.Empty);
+
+            var tokenUsage = new TokenUsage
+            {
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                ModelName = _model,
+                Provider = "LM Studio",
+                Timestamp = DateTime.Now,
+                EstimatedCost = 0.00m  // LM Studio es local, sin costo
+            };
+
             return new ToolCallingResponse
             {
                 Content = responseMessage.Content,
                 ToolCalls = toolCalls,
                 Role = responseMessage.Role,
                 Done = true,
+                TokenUsage = tokenUsage,  // ✅ NUEVO (estimado)
                 Metadata = new Dictionary<string, object>
                 {
                     ["finish_reason"] = choice.FinishReason ?? "stop",
@@ -142,7 +160,7 @@ public class LMStudioToolService : IToolCallingService
         catch (JsonException ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"? Error deserializando respuesta de LM Studio:");
+            Console.WriteLine($"❌ Error deserializando respuesta de LM Studio:");
             Console.WriteLine($"Respuesta cruda: {responseContent}");
             Console.ResetColor();
             throw new InvalidOperationException($"Error deserializando respuesta de LM Studio: {ex.Message}", ex);

@@ -1,8 +1,8 @@
-namespace AgentWikiChat.Services.VersionControl;
+Ôªønamespace AgentWikiChat.Services.VersionControl;
 
 /// <summary>
-/// Interfaz genÈrica para sistemas de control de versiones.
-/// Define operaciones est·ndar que deben soportar todos los proveedores (SVN, Git, etc.)
+/// Interfaz gen√©rica para sistemas de control de versiones.
+/// Define operaciones est√°ndar que deben soportar todos los proveedores (SVN, Git, etc.)
 /// </summary>
 public interface IVersionControlHandler
 {
@@ -12,34 +12,34 @@ public interface IVersionControlHandler
     string ProviderName { get; }
 
     /// <summary>
-    /// Verifica si el cliente del sistema de control de versiones est· instalado
+    /// Verifica si el cliente del sistema de control de versiones est√° instalado
     /// </summary>
     bool IsClientInstalled();
 
     /// <summary>
-    /// Obtiene la versiÛn del cliente instalado
+    /// Obtiene la versi√≥n del cliente instalado
     /// </summary>
     string GetClientVersion();
 
     /// <summary>
-    /// Prueba la conexiÛn con el repositorio
+    /// Prueba la conexi√≥n con el repositorio
     /// </summary>
-    /// <returns>True si la conexiÛn es exitosa</returns>
+    /// <returns>True si la conexi√≥n es exitosa</returns>
     Task<bool> TestConnectionAsync();
 
     /// <summary>
-    /// Ejecuta una operaciÛn de solo lectura en el repositorio
+    /// Ejecuta una operaci√≥n de solo lectura en el repositorio
     /// </summary>
-    /// <param name="operation">Tipo de operaciÛn (log, info, list, etc.)</param>
-    /// <param name="parameters">Par·metros adicionales (path, revision, limit, etc.)</param>
-    /// <returns>Resultado de la operaciÛn</returns>
+    /// <param name="operation">Tipo de operaci√≥n (log, info, list, etc.)</param>
+    /// <param name="parameters">Par√°metros adicionales (path, revision, limit, etc.)</param>
+    /// <returns>Resultado de la operaci√≥n</returns>
     Task<string> ExecuteReadOnlyOperationAsync(string operation, Dictionary<string, string> parameters);
 
     /// <summary>
-    /// Valida si una operaciÛn es de solo lectura y est· permitida
+    /// Valida si una operaci√≥n es de solo lectura y est√° permitida
     /// </summary>
-    /// <param name="operation">OperaciÛn a validar</param>
-    /// <returns>True si la operaciÛn es v·lida</returns>
+    /// <param name="operation">Operaci√≥n a validar</param>
+    /// <returns>True si la operaci√≥n es v√°lida</returns>
     bool IsOperationAllowed(string operation);
 
     /// <summary>
@@ -53,7 +53,7 @@ public interface IVersionControlHandler
     string GetInstallationInstructions();
 
     /// <summary>
-    /// Obtiene sugerencias seg˙n el tipo de error
+    /// Obtiene sugerencias seg√∫n el tipo de error
     /// </summary>
     string GetErrorSuggestions(string errorMessage);
 }

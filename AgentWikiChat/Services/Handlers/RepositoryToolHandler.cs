@@ -1,13 +1,13 @@
-using AgentWikiChat.Models;
+Ôªøusing AgentWikiChat.Models;
 using Microsoft.Extensions.Configuration;
 using AgentWikiChat.Services.VersionControl;
 
 namespace AgentWikiChat.Services.Handlers;
 
 /// <summary>
-/// Handler genÈrico para operaciones con repositorios de control de versiones.
+/// Handler gen√©rico para operaciones con repositorios de control de versiones.
 /// SEGURIDAD: Solo permite operaciones de lectura. Bloqueado: commit, delete, update, etc.
-/// Usa el patrÛn de factory para soportar m˙ltiples proveedores (SVN, Git, GitHub, etc.) con patrÛn multi-provider.
+/// Usa el patr√≥n de factory para soportar m√∫ltiples proveedores (SVN, Git, GitHub, etc.) con patr√≥n multi-provider.
 /// </summary>
 public class RepositoryToolHandler : IToolHandler
 {
@@ -19,10 +19,10 @@ public class RepositoryToolHandler : IToolHandler
     {
         _debugMode = configuration.GetValue("Ui:Debug", true);
 
-        // Crear handler especÌfico usando factory (multi-provider)
+        // Crear handler espec√≠fico usando factory (multi-provider)
         _versionControlHandler = VersionControlHandlerFactory.CreateHandler(configuration);
         
-        // Obtener configuraciÛn del proveedor activo
+        // Obtener configuraci√≥n del proveedor activo
         _providerConfig = VersionControlHandlerFactory.GetActiveProviderConfig(configuration);
 
         LogDebug($"[Repository] Inicializado - Provider: {_providerConfig.Name} ({_versionControlHandler.ProviderName})");
@@ -40,7 +40,7 @@ public class RepositoryToolHandler : IToolHandler
             Function = new FunctionDefinition
             {
                 Name = ToolName,
-                Description = $"Ejecuta operaciones de SOLO LECTURA en repositorios {_versionControlHandler.ProviderName} ({_providerConfig.Name}) - Operaciones: {string.Join(", ", allowedOps)}. NO permite modificaciones (commit, delete, add, update). Usa esta herramienta para consultar historial, ver archivos, obtener informaciÛn del repositorio.",
+                Description = $"Ejecuta operaciones de SOLO LECTURA en repositorios {_versionControlHandler.ProviderName} ({_providerConfig.Name}) - Operaciones: {string.Join(", ", allowedOps)}. NO permite modificaciones (commit, delete, add, update). Usa esta herramienta para consultar historial, ver archivos, obtener informaci√≥n del repositorio.",
                 Parameters = new FunctionParameters
                 {
                     Type = "object",
@@ -49,23 +49,23 @@ public class RepositoryToolHandler : IToolHandler
                         ["operation"] = new PropertyDefinition
                         {
                             Type = "string",
-                            Description = $"OperaciÛn {_versionControlHandler.ProviderName} a ejecutar: 'log' (historial), 'info' (informaciÛn), 'list' (listar archivos), 'cat' (ver contenido), 'diff' (diferencias), 'blame' (autorÌa), 'status' (estado)",
+                            Description = $"Operaci√≥n {_versionControlHandler.ProviderName} a ejecutar: 'log' (historial), 'info' (informaci√≥n), 'list' (listar archivos), 'cat' (ver contenido), 'diff' (diferencias), 'blame' (autor√≠a), 'status' (estado)",
                             Enum = allowedOps
                         },
                         ["path"] = new PropertyDefinition
                         {
                             Type = "string",
-                            Description = "Ruta del archivo o directorio en el repositorio (opcional, por defecto raÌz). Ejemplo: '/trunk/src/MyFile.cs' (SVN) o 'src/MyFile.cs' (Git)"
+                            Description = "Ruta del archivo o directorio en el repositorio (opcional, por defecto ra√≠z). Ejemplo: '/trunk/src/MyFile.cs' (SVN) o 'src/MyFile.cs' (Git)"
                         },
                         ["revision"] = new PropertyDefinition
                         {
                             Type = "string",
-                            Description = "N˙mero de revisiÛn o rango (ej: '1234', 'HEAD', '1000:1100' para SVN; 'HEAD', 'commit-hash', 'branch-name' para Git). Por defecto HEAD."
+                            Description = "N√∫mero de revisi√≥n o rango (ej: '1234', 'HEAD', '1000:1100' para SVN; 'HEAD', 'commit-hash', 'branch-name' para Git). Por defecto HEAD."
                         },
                         ["limit"] = new PropertyDefinition
                         {
                             Type = "string",
-                            Description = "LÌmite de resultados para comandos como log (ej: '10', '50'). Por defecto 10."
+                            Description = "L√≠mite de resultados para comandos como log (ej: '10', '50'). Por defecto 10."
                         }
                     },
                     Required = new List<string> { "operation" }
@@ -83,31 +83,31 @@ public class RepositoryToolHandler : IToolHandler
 
         if (string.IsNullOrWhiteSpace(operation))
         {
-            return "?? Error: La operaciÛn no puede estar vacÌa.";
+            return "‚ö†Ô∏è Error: La operaci√≥n no puede estar vac√≠a.";
         }
 
-        // Verificar si el cliente est· instalado
+        // Verificar si el cliente est√° instalado
         if (!_versionControlHandler.IsClientInstalled())
         {
             return _versionControlHandler.GetInstallationInstructions();
         }
 
-        LogDebug($"[{_versionControlHandler.ProviderName}] OperaciÛn recibida: {operation}, Path: {path}, Revision: {revision}");
+        LogDebug($"[{_versionControlHandler.ProviderName}] Operaci√≥n recibida: {operation}, Path: {path}, Revision: {revision}");
 
-        // ?? VALIDACI”N DE SEGURIDAD
+        // üîí VALIDACI√ìN DE SEGURIDAD
         if (!_versionControlHandler.IsOperationAllowed(operation))
         {
             var allowedOps = string.Join(", ", _versionControlHandler.GetAllowedOperations());
-            LogError($"[{_versionControlHandler.ProviderName}] OperaciÛn rechazada: {operation}");
-            return $"?? **OperaciÛn Rechazada por Seguridad**\n\n" +
-                   $"La operaciÛn '{operation}' no est· permitida.\n\n" +
-                   $"? **Operaciones permitidas**: {allowedOps}\n\n" +
-                   $"?? **Recuerda**: Solo se permiten operaciones de solo lectura.";
+            LogError($"[{_versionControlHandler.ProviderName}] Operaci√≥n rechazada: {operation}");
+            return $"üîí **Operaci√≥n Rechazada por Seguridad**\n\n" +
+                   $"La operaci√≥n '{operation}' no est√° permitida.\n\n" +
+                   $"‚úÖ **Operaciones permitidas**: {allowedOps}\n\n" +
+                   $"‚ÑπÔ∏è **Recuerda**: Solo se permiten operaciones de solo lectura.";
         }
 
         try
         {
-            // Ejecutar operaciÛn
+            // Ejecutar operaci√≥n
             var operationParams = new Dictionary<string, string>
             {
                 ["path"] = path,
@@ -127,17 +127,17 @@ public class RepositoryToolHandler : IToolHandler
         {
             LogError($"[{_versionControlHandler.ProviderName}] Error: {ex.Message}");
 
-            // Error especÌfico si el cliente no se encuentra
+            // Error espec√≠fico si el cliente no se encuentra
             if (ex.Message.Contains("cannot find the file") || ex.Message.Contains("no puede encontrar el archivo"))
             {
                 return _versionControlHandler.GetInstallationInstructions();
             }
 
-            // Mensajes de error m·s descriptivos
+            // Mensajes de error m√°s descriptivos
             var errorMessage = ex.Message;
             var suggestions = _versionControlHandler.GetErrorSuggestions(errorMessage);
 
-            return $"? **Error en {_providerConfig.Name} ({_versionControlHandler.ProviderName})**\n\n" +
+            return $"‚ùå **Error en {_providerConfig.Name} ({_versionControlHandler.ProviderName})**\n\n" +
                    $"**Mensaje**: {errorMessage}\n\n" +
                    suggestions;
         }

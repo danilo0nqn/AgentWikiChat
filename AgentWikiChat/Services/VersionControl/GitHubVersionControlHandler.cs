@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace AgentWikiChat.Services.VersionControl;
 
 /// <summary>
-/// Implementaci�n espec�fica para GitHub usando REST API v3.
+/// Implementación específica para GitHub usando REST API v3.
 /// SEGURIDAD: Solo permite operaciones de lectura.
 /// Requiere Personal Access Token con permisos de solo lectura (repo:read).
 /// </summary>
@@ -24,7 +24,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         "log", "show", "list", "cat", "diff", "blame", "branches", "tags", "info"
     };
 
-    // Comandos prohibidos (escritura/modificaci�n)
+    // Comandos prohibidos (escritura/modificación)
     private static readonly string[] ProhibitedCommands = new[]
     {
         "commit", "push", "pull", "merge", "create", "delete",
@@ -46,7 +46,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var parts = url.Split('/');
         if (parts.Length < 2)
         {
-            throw new InvalidOperationException($"URL de repositorio GitHub inv�lida: {RepositoryUrl}. Formato esperado: https://github.com/owner/repo");
+            throw new InvalidOperationException($"URL de repositorio GitHub inválida: {RepositoryUrl}. Formato esperado: https://github.com/owner/repo");
         }
 
         _owner = parts[^2];
@@ -54,7 +54,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         _token = Password; // En GitHub, el password es el Personal Access Token
         _branch = configuration.GetSection("Repository").GetValue<string>("Branch") ?? "main";
 
-        // Configurar autenticaci�n si hay token
+        // Configurar autenticación si hay token
         if (!string.IsNullOrEmpty(_token))
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token);
@@ -62,7 +62,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
 
         LogDebug($"[GitHub] Inicializado - Owner: {_owner}, Repo: {_repo}, Branch: {_branch}");
 
-        // Diagn�stico inicial
+        // Diagnóstico inicial
         _ = TestConnectionAsync().Result; // Fire and forget
     }
 
@@ -74,7 +74,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
 
     public override string GetClientVersion()
     {
-        // GitHub API siempre est� disponible
+        // GitHub API siempre está disponible
         return "GitHub API v3";
     }
 
@@ -82,25 +82,25 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
     {
         try
         {
-            LogDebug($"[GitHub] Probando conexi�n con {_owner}/{_repo}...");
+            LogDebug($"[GitHub] Probando conexión con {_owner}/{_repo}...");
 
             var response = await _httpClient.GetAsync($"https://api.github.com/repos/{_owner}/{_repo}");
 
             if (response.IsSuccessStatusCode)
             {
-                LogDebug($"[GitHub] ? Conexi�n exitosa con el repositorio");
+                LogDebug($"[GitHub] ✅ Conexión exitosa con el repositorio");
                 return true;
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                LogWarning($"[GitHub] ?? Problema al conectar: {response.StatusCode} - {error.Substring(0, Math.Min(200, error.Length))}");
+                LogWarning($"[GitHub] ⚠️ Problema al conectar: {response.StatusCode} - {error.Substring(0, Math.Min(200, error.Length))}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            LogWarning($"[GitHub] ?? No se pudo verificar conexi�n: {ex.Message}");
+            LogWarning($"[GitHub] ⚠️ No se pudo verificar conexión: {ex.Message}");
             return false;
         }
     }
@@ -109,7 +109,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
     {
         if (!IsOperationAllowed(operation))
         {
-            throw new InvalidOperationException($"Operaci�n '{operation}' no est� permitida. Solo operaciones de lectura.");
+            throw new InvalidOperationException($"Operación '{operation}' no está permitida. Solo operaciones de lectura.");
         }
 
         parameters.TryGetValue("path", out var path);
@@ -135,7 +135,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
                 "branches" => await GetBranchesAsync(),
                 "tags" => await GetTagsAsync(),
                 "info" => await GetRepositoryInfoAsync(),
-                _ => throw new InvalidOperationException($"Operaci�n '{operation}' no implementada")
+                _ => throw new InvalidOperationException($"Operación '{operation}' no implementada")
             };
         }
         catch (HttpRequestException ex)
@@ -165,13 +165,13 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
     public override string GetInstallationInstructions()
     {
         var message = new StringBuilder();
-        message.AppendLine("?? **GitHub API**\n");
-        message.AppendLine("GitHub no requiere instalaci�n de cliente local. Usa la API REST.\n");
-        message.AppendLine("**?? Configuraci�n:**\n");
-        message.AppendLine("1. Obt�n un Personal Access Token:");
+        message.AppendLine("💡 **GitHub API**\n");
+        message.AppendLine("GitHub no requiere instalación de cliente local. Usa la API REST.\n");
+        message.AppendLine("**⚙️ Configuración:**\n");
+        message.AppendLine("1. Obtén un Personal Access Token:");
         message.AppendLine("   - Ve a: https://github.com/settings/tokens");
         message.AppendLine("   - Click en 'Generate new token (classic)'");
-        message.AppendLine("   - Selecciona scope: `repo` (o `public_repo` para repos p�blicos)");
+        message.AppendLine("   - Selecciona scope: `repo` (o `public_repo` para repos públicos)");
         message.AppendLine("   - Copia el token generado\n");
         message.AppendLine("2. Configura en `appsettings.json`:");
         message.AppendLine("```json");
@@ -185,10 +185,10 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         message.AppendLine("  }");
         message.AppendLine("}");
         message.AppendLine("```\n");
-        message.AppendLine("**?? Importante:**");
+        message.AppendLine("**⚠️ Importante:**");
         message.AppendLine("- El campo `Password` debe contener tu Personal Access Token");
-        message.AppendLine("- Para repositorios p�blicos, el token es opcional");
-        message.AppendLine("- Nunca compartas tu token en repositorios p�blicos");
+        message.AppendLine("- Para repositorios públicos, el token es opcional");
+        message.AppendLine("- Nunca compartas tu token en repositorios públicos");
 
         return message.ToString();
     }
@@ -196,42 +196,42 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
     public override string GetErrorSuggestions(string errorMessage)
     {
         var suggestions = new StringBuilder();
-        suggestions.AppendLine("?? **Posibles soluciones:**\n");
+        suggestions.AppendLine("💡 **Posibles soluciones:**\n");
 
         if (errorMessage.Contains("401") || errorMessage.Contains("Unauthorized") || errorMessage.Contains("Bad credentials"))
         {
-            suggestions.AppendLine("**Problema de autenticaci�n (401 Unauthorized):**");
-            suggestions.AppendLine("1. ?? Verifica que tu Personal Access Token sea v�lido");
-            suggestions.AppendLine("2. ?? Genera un nuevo token en: https://github.com/settings/tokens");
-            suggestions.AppendLine("3. ?? Aseg�rate de tener el scope `repo` o `public_repo`");
-            suggestions.AppendLine("4. ? El token puede haber expirado");
-            suggestions.AppendLine("5. ?? Verifica que el token est� correctamente configurado en appsettings.json");
+            suggestions.AppendLine("**Problema de autenticación (401 Unauthorized):**");
+            suggestions.AppendLine("1. 🔑 Verifica que tu Personal Access Token sea válido");
+            suggestions.AppendLine("2. 🔄 Genera un nuevo token en: https://github.com/settings/tokens");
+            suggestions.AppendLine("3. ✅ Asegúrate de tener el scope `repo` o `public_repo`");
+            suggestions.AppendLine("4. ⏰ El token puede haber expirado");
+            suggestions.AppendLine("5. ⚙️ Verifica que el token esté correctamente configurado en appsettings.json");
         }
         else if (errorMessage.Contains("404") || errorMessage.Contains("Not Found"))
         {
             suggestions.AppendLine("**Recurso no encontrado (404):**");
-            suggestions.AppendLine("1. ?? Verifica que el repositorio exista: https://github.com/" + _owner + "/" + _repo);
-            suggestions.AppendLine("2. ?? Verifica que el path del archivo sea correcto");
-            suggestions.AppendLine("3. ?? Verifica que la rama/commit exista");
-            suggestions.AppendLine("4. ??? Para repos privados, verifica que tengas permisos de lectura");
+            suggestions.AppendLine("1. 🔍 Verifica que el repositorio exista: https://github.com/" + _owner + "/" + _repo);
+            suggestions.AppendLine("2. 📄 Verifica que el path del archivo sea correcto");
+            suggestions.AppendLine("3. 🌿 Verifica que la rama/commit exista");
+            suggestions.AppendLine("4. 🔒 Para repos privados, verifica que tengas permisos de lectura");
         }
         else if (errorMessage.Contains("403") || errorMessage.Contains("Forbidden") || errorMessage.Contains("rate limit"))
         {
-            suggestions.AppendLine("**L�mite de API excedido (403 Forbidden):**");
-            suggestions.AppendLine("1. ?? GitHub limita a 60 requests/hora sin autenticaci�n");
-            suggestions.AppendLine("2. ?? Con token: 5,000 requests/hora");
-            suggestions.AppendLine("3. ? Espera a que se resetee el l�mite");
-            suggestions.AppendLine("4. ?? Usa un Personal Access Token para aumentar el l�mite");
+            suggestions.AppendLine("**Límite de API excedido (403 Forbidden):**");
+            suggestions.AppendLine("1. ⚠️ GitHub limita a 60 requests/hora sin autenticación");
+            suggestions.AppendLine("2. ✅ Con token: 5,000 requests/hora");
+            suggestions.AppendLine("3. ⏱️ Espera a que se resetee el límite");
+            suggestions.AppendLine("4. 🎫 Usa un Personal Access Token para aumentar el límite");
         }
         else if (errorMessage.Contains("timeout") || errorMessage.Contains("Timeout"))
         {
-            suggestions.AppendLine("**Timeout de conexi�n:**");
-            suggestions.AppendLine("1. ?? Verifica tu conexi�n a internet");
-            suggestions.AppendLine("2. ?? Verifica configuraci�n de firewall/proxy");
-            suggestions.AppendLine("3. ?? Aumenta CommandTimeout en appsettings.json");
+            suggestions.AppendLine("**Timeout de conexión:**");
+            suggestions.AppendLine("1. 🌐 Verifica tu conexión a internet");
+            suggestions.AppendLine("2. 🛡️ Verifica configuración de firewall/proxy");
+            suggestions.AppendLine("3. ⏰ Aumenta CommandTimeout en appsettings.json");
         }
 
-        suggestions.AppendLine("\n?? **Verificaci�n r�pida:**");
+        suggestions.AppendLine("\n💡 **Verificación rápida:**");
         suggestions.AppendLine("```bash");
         suggestions.AppendLine($"curl -H \"Authorization: Bearer YOUR_TOKEN\" https://api.github.com/repos/{_owner}/{_repo}");
         suggestions.AppendLine("```");
@@ -254,7 +254,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var commits = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine($"?? �ltimos {limit} commits:");
+        result.AppendLine($"📜 Últimos {limit} commits:");
         result.AppendLine();
 
         foreach (var commit in commits.EnumerateArray())
@@ -264,9 +264,9 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
             var author = commit.GetProperty("commit").GetProperty("author").GetProperty("name").GetString();
             var date = commit.GetProperty("commit").GetProperty("author").GetProperty("date").GetString();
 
-            result.AppendLine($"?? {sha} - {author}");
-            result.AppendLine($"   ?? {date}");
-            result.AppendLine($"   ?? {message}");
+            result.AppendLine($"🔹 {sha} - {author}");
+            result.AppendLine($"   📅 {date}");
+            result.AppendLine($"   💬 {message}");
             result.AppendLine();
         }
 
@@ -283,7 +283,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var commit = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine($"?? Detalles del commit {sha[..7]}:");
+        result.AppendLine($"📝 Detalles del commit {sha[..7]}:");
         result.AppendLine();
         result.AppendLine($"**Autor**: {commit.GetProperty("commit").GetProperty("author").GetProperty("name").GetString()}");
         result.AppendLine($"**Email**: {commit.GetProperty("commit").GetProperty("author").GetProperty("email").GetString()}");
@@ -316,7 +316,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var items = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine($"?? Contenido de {(string.IsNullOrEmpty(path) ? "ra�z" : path)}:");
+        result.AppendLine($"📁 Contenido de {(string.IsNullOrEmpty(path) ? "raíz" : path)}:");
         result.AppendLine();
 
         foreach (var item in items.EnumerateArray())
@@ -325,7 +325,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
             var type = item.GetProperty("type").GetString();
             var size = item.TryGetProperty("size", out var s) ? s.GetInt32() : 0;
 
-            var icon = type == "dir" ? "??" : "??";
+            var icon = type == "dir" ? "📁" : "📄";
             var sizeStr = type == "file" ? $" ({size} bytes)" : "";
             result.AppendLine($"{icon} {name}{sizeStr}");
         }
@@ -359,7 +359,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
 
     private async Task<string> GetDiffAsync(string sha, string path)
     {
-        // GitHub API no tiene endpoint directo para diff, usamos comparaci�n con parent
+        // GitHub API no tiene endpoint directo para diff, usamos comparación con parent
         var commitUrl = $"https://api.github.com/repos/{_owner}/{_repo}/commits/{sha}";
         var commitResponse = await _httpClient.GetAsync(commitUrl);
         commitResponse.EnsureSuccessStatusCode();
@@ -368,7 +368,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var commit = JsonSerializer.Deserialize<JsonElement>(commitJson);
 
         var result = new StringBuilder();
-        result.AppendLine($"?? Cambios en commit {sha[..7]}:");
+        result.AppendLine($"📝 Cambios en commit {sha[..7]}:");
         result.AppendLine();
 
         var files = commit.GetProperty("files");
@@ -403,7 +403,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var commits = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine($"?? Informaci�n de autor�a de {path}:");
+        result.AppendLine($"👤 Información de autoría de {path}:");
         result.AppendLine();
 
         if (commits.GetArrayLength() > 0)
@@ -413,17 +413,17 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
             var date = lastCommit.GetProperty("commit").GetProperty("author").GetProperty("date").GetString();
             var message = lastCommit.GetProperty("commit").GetProperty("message").GetString();
 
-            result.AppendLine($"**�ltima modificaci�n por**: {author}");
+            result.AppendLine($"**Última modificación por**: {author}");
             result.AppendLine($"**Fecha**: {date}");
             result.AppendLine($"**Mensaje**: {message}");
         }
         else
         {
-            result.AppendLine("No se encontr� informaci�n de commits para este archivo");
+            result.AppendLine("No se encontró información de commits para este archivo");
         }
 
         result.AppendLine();
-        result.AppendLine("?? Nota: Para blame l�nea por l�nea completo, usa el comando Git local con working copy");
+        result.AppendLine("💡 Nota: Para blame línea por línea completo, usa el comando Git local con working copy");
 
         return result.ToString();
     }
@@ -438,14 +438,14 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var branches = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine("?? Ramas disponibles:");
+        result.AppendLine("🌿 Ramas disponibles:");
         result.AppendLine();
 
         foreach (var branch in branches.EnumerateArray())
         {
             var name = branch.GetProperty("name").GetString();
             var isProtected = branch.GetProperty("protected").GetBoolean();
-            var icon = isProtected ? "??" : "??";
+            var icon = isProtected ? "🔒" : "🌿";
 
             result.AppendLine($"{icon} {name}");
         }
@@ -463,7 +463,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var tags = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine("??? Tags disponibles:");
+        result.AppendLine("🏷️ Tags disponibles:");
         result.AppendLine();
 
         foreach (var tag in tags.EnumerateArray())
@@ -471,7 +471,7 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
             var name = tag.GetProperty("name").GetString();
             var sha = tag.GetProperty("commit").GetProperty("sha").GetString()?[..7];
 
-            result.AppendLine($"??? {name} ({sha})");
+            result.AppendLine($"🏷️ {name} ({sha})");
         }
 
         if (tags.GetArrayLength() == 0)
@@ -492,19 +492,19 @@ public class GitHubVersionControlHandler : BaseVersionControlHandler
         var repo = JsonSerializer.Deserialize<JsonElement>(json);
 
         var result = new StringBuilder();
-        result.AppendLine($"?? Informaci�n del repositorio {_owner}/{_repo}:");
+        result.AppendLine($"📦 Información del repositorio {_owner}/{_repo}:");
         result.AppendLine();
         result.AppendLine($"**Nombre**: {repo.GetProperty("full_name").GetString()}");
-        result.AppendLine($"**Descripci�n**: {(repo.TryGetProperty("description", out var desc) ? desc.GetString() : "Sin descripci�n")}");
-        result.AppendLine($"**Visibilidad**: {(repo.GetProperty("private").GetBoolean() ? "?? Privado" : "?? P�blico")}");
+        result.AppendLine($"**Descripción**: {(repo.TryGetProperty("description", out var desc) ? desc.GetString() : "Sin descripción")}");
+        result.AppendLine($"**Visibilidad**: {(repo.GetProperty("private").GetBoolean() ? "🔒 Privado" : "🌐 Público")}");
         result.AppendLine($"**Rama predeterminada**: {repo.GetProperty("default_branch").GetString()}");
         result.AppendLine($"**Lenguaje principal**: {(repo.TryGetProperty("language", out var lang) ? lang.GetString() : "N/A")}");
-        result.AppendLine($"**Tama�o**: {repo.GetProperty("size").GetInt32()} KB");
-        result.AppendLine($"**Stars**: ? {repo.GetProperty("stargazers_count").GetInt32()}");
-        result.AppendLine($"**Forks**: ?? {repo.GetProperty("forks_count").GetInt32()}");
-        result.AppendLine($"**Issues abiertos**: ?? {repo.GetProperty("open_issues_count").GetInt32()}");
+        result.AppendLine($"**Tamaño**: {repo.GetProperty("size").GetInt32()} KB");
+        result.AppendLine($"**Stars**: ⭐ {repo.GetProperty("stargazers_count").GetInt32()}");
+        result.AppendLine($"**Forks**: 🍴 {repo.GetProperty("forks_count").GetInt32()}");
+        result.AppendLine($"**Issues abiertos**: 📋 {repo.GetProperty("open_issues_count").GetInt32()}");
         result.AppendLine($"**Creado**: {repo.GetProperty("created_at").GetString()}");
-        result.AppendLine($"**�ltima actualizaci�n**: {repo.GetProperty("updated_at").GetString()}");
+        result.AppendLine($"**Última actualización**: {repo.GetProperty("updated_at").GetString()}");
         result.AppendLine($"**URL**: {repo.GetProperty("html_url").GetString()}");
 
         return result.ToString();

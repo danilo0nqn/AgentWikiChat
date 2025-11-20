@@ -1,23 +1,23 @@
-using System.Text;
+﻿using System.Text;
 
 namespace AgentWikiChat.Services;
 
 /// <summary>
 /// Captura toda la salida de la consola y la guarda en un archivo de log.
-/// Cada sesi�n genera un archivo �nico con timestamp.
-/// Versi�n mejorada que captura Write y WriteLine correctamente.
+/// Cada sesión genera un archivo único con timestamp.
+/// Versión mejorada que captura Write y WriteLine correctamente.
 /// </summary>
 public class ConsoleLogger : IDisposable
 {
     private readonly string _logFilePath;
     private readonly StringBuilder _logBuffer;
-    private readonly StringBuilder _lineBuffer;  // ?? Buffer para acumular escrituras parciales
+    private readonly StringBuilder _lineBuffer;  // 📝 Buffer para acumular escrituras parciales
     private readonly TextWriter _originalOut;
     private readonly TextWriter _originalError;
     private readonly bool _enabled;
     private readonly StreamWriter? _fileWriter;
     private bool _disposed;
-    private readonly object _lockObject = new object();  // ?? Para thread-safety
+    private readonly object _lockObject = new object();  // 🔒 Para thread-safety
 
     public ConsoleLogger(string logDirectory, string filePrefix, bool enabled = true)
     {
@@ -39,7 +39,7 @@ public class ConsoleLogger : IDisposable
             Directory.CreateDirectory(logDirectory);
         }
 
-        // Generar nombre de archivo �nico con timestamp
+        // Generar nombre de archivo único con timestamp
         var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         _logFilePath = Path.Combine(logDirectory, $"{filePrefix}_{timestamp}.log");
 
@@ -60,7 +60,7 @@ public class ConsoleLogger : IDisposable
         }
         catch (Exception ex)
         {
-            _originalOut.WriteLine($"?? Error al inicializar ConsoleLogger: {ex.Message}");
+            _originalOut.WriteLine($"❌ Error al inicializar ConsoleLogger: {ex.Message}");
             _enabled = false;
         }
     }
@@ -69,9 +69,9 @@ public class ConsoleLogger : IDisposable
     {
         if (!_enabled || _fileWriter == null) return;
 
-        _fileWriter.WriteLine("???????????????????????????????????????????????????????????????????????????????");
+        _fileWriter.WriteLine("═══════════════════════════════════════════════════════════════════════════════");
         _fileWriter.WriteLine("                      AgentWikiChat PRO - Session Log                      ");
-        _fileWriter.WriteLine("???????????????????????????????????????????????????????????????????????????????");
+        _fileWriter.WriteLine("═══════════════════════════════════════════════════════════════════════════════");
         _fileWriter.WriteLine();
         _fileWriter.WriteLine($"Session Started: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         _fileWriter.WriteLine($"Log File: {Path.GetFileName(_logFilePath)}");
@@ -80,7 +80,7 @@ public class ConsoleLogger : IDisposable
         _fileWriter.WriteLine($"OS: {Environment.OSVersion}");
         _fileWriter.WriteLine($".NET Version: {Environment.Version}");
         _fileWriter.WriteLine();
-        _fileWriter.WriteLine("???????????????????????????????????????????????????????????????????????????????");
+        _fileWriter.WriteLine("═══════════════════════════════════════════════════════════════════════════════");
         _fileWriter.WriteLine();
     }
 
@@ -88,7 +88,7 @@ public class ConsoleLogger : IDisposable
     {
         if (!_enabled || _fileWriter == null) return;
 
-        // ?? Flush cualquier contenido pendiente en el buffer
+        // 🔄 Flush cualquier contenido pendiente en el buffer
         lock (_lockObject)
         {
             if (_lineBuffer.Length > 0)
@@ -98,13 +98,13 @@ public class ConsoleLogger : IDisposable
         }
 
         _fileWriter.WriteLine();
-        _fileWriter.WriteLine("???????????????????????????????????????????????????????????????????????????????");
+        _fileWriter.WriteLine("═══════════════════════════════════════════════════════════════════════════════");
         _fileWriter.WriteLine($"Session Ended: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        _fileWriter.WriteLine("???????????????????????????????????????????????????????????????????????????????");
+        _fileWriter.WriteLine("═══════════════════════════════════════════════════════════════════════════════");
     }
 
     /// <summary>
-    /// Escribe una l�nea completa en el log.
+    /// Escribe una línea completa en el log.
     /// </summary>
     public void LogLine(string? value)
     {
@@ -123,13 +123,13 @@ public class ConsoleLogger : IDisposable
             }
             catch
             {
-                // Ignorar errores de escritura para no interrumpir la aplicaci�n
+                // Ignorar errores de escritura para no interrumpir la aplicación
             }
         }
     }
 
     /// <summary>
-    /// ?? Escribe contenido parcial (sin salto de l�nea) en el buffer.
+    /// 📝 Escribe contenido parcial (sin salto de línea) en el buffer.
     /// </summary>
     internal void WritePartial(string? value)
     {
@@ -142,7 +142,7 @@ public class ConsoleLogger : IDisposable
     }
 
     /// <summary>
-    /// ?? Flushea el buffer de l�nea actual al archivo.
+    /// 🔄 Flushea el buffer de línea actual al archivo.
     /// </summary>
     internal void FlushLineBuffer()
     {
@@ -199,12 +199,12 @@ public class ConsoleLogger : IDisposable
             if (_enabled && !string.IsNullOrEmpty(_logFilePath))
             {
                 _originalOut.WriteLine();
-                _originalOut.WriteLine($"?? Log guardado en: {_logFilePath}");
+                _originalOut.WriteLine($"✅ Log guardado en: {_logFilePath}");
             }
         }
         catch (Exception ex)
         {
-            _originalOut.WriteLine($"?? Error al cerrar ConsoleLogger: {ex.Message}");
+            _originalOut.WriteLine($"❌ Error al cerrar ConsoleLogger: {ex.Message}");
         }
 
         _disposed = true;
@@ -212,7 +212,7 @@ public class ConsoleLogger : IDisposable
 
     /// <summary>
     /// TextWriter personalizado que intercepta escrituras a Console.Out.
-    /// Versi�n mejorada que captura Write y WriteLine correctamente.
+    /// Versión mejorada que captura Write y WriteLine correctamente.
     /// </summary>
     private class ConsoleLogWriter : TextWriter
     {
@@ -227,7 +227,7 @@ public class ConsoleLogger : IDisposable
 
         public override Encoding Encoding => Encoding.UTF8;
 
-        // ?? Capturar Write de un solo car�cter
+        // 📝 Capturar Write de un solo carácter
         public override void Write(char value)
         {
             _originalWriter.Write(value);
@@ -240,7 +240,7 @@ public class ConsoleLogger : IDisposable
             }
         }
 
-        // ?? Capturar Write de string
+        // 📝 Capturar Write de string
         public override void Write(string? value)
         {
             _originalWriter.Write(value);
@@ -267,7 +267,7 @@ public class ConsoleLogger : IDisposable
             _logger.FlushLineBuffer();
         }
 
-        // Capturar WriteLine vac�o
+        // Capturar WriteLine vacío
         public override void WriteLine()
         {
             _originalWriter.WriteLine();

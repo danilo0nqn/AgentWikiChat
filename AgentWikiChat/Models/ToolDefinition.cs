@@ -1,8 +1,8 @@
-namespace AgentWikiChat.Models;
+锘縩amespace AgentWikiChat.Models;
 
 /// <summary>
-/// Representa una herramienta (funci髇) que cualquier LLM puede invocar.
-/// Formato unificado basado en el est醤dar de OpenAI Function Calling.
+/// Representa una herramienta (funci贸n) que cualquier LLM puede invocar.
+/// Formato unificado basado en el est谩ndar de OpenAI Function Calling.
 /// Compatible con: Ollama, OpenAI, Anthropic, LM Studio, etc.
 /// </summary>
 public class ToolDefinition
@@ -12,7 +12,7 @@ public class ToolDefinition
 }
 
 /// <summary>
-/// Definici髇 de una funci髇/herramienta.
+/// Definici贸n de una funci贸n/herramienta.
 /// </summary>
 public class FunctionDefinition
 {
@@ -22,7 +22,7 @@ public class FunctionDefinition
 }
 
 /// <summary>
-/// Par醡etros de una funci髇 con JSON Schema.
+/// Par谩metros de una funci贸n con JSON Schema.
 /// </summary>
 public class FunctionParameters
 {
@@ -32,7 +32,7 @@ public class FunctionParameters
 }
 
 /// <summary>
-/// Definici髇 de una propiedad de par醡etro.
+/// Definici贸n de una propiedad de par谩metro.
 /// </summary>
 public class PropertyDefinition
 {
