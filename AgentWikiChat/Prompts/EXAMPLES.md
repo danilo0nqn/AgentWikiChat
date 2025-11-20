@@ -1,4 +1,4 @@
-﻿# Ejemplos de System Prompts Especializados
+# Ejemplos de System Prompts Especializados
 
 Este archivo contiene ejemplos y plantillas para crear System Prompts especializados para diferentes casos de uso.
 
