@@ -1,7 +1,7 @@
-namespace AgentWikiChat.Models;
+﻿namespace AgentWikiChat.Models;
 
 /// <summary>
-/// Resultado completo de la ejecuci�n del agente con m�tricas y trazabilidad.
+/// Resultado completo de la ejecución del agente con métricas y trazabilidad.
 /// </summary>
 public class AgentExecutionResult
 {
@@ -10,43 +10,64 @@ public class AgentExecutionResult
     /// </summary>
     public string FinalAnswer { get; set; } = string.Empty;
 
-/// <summary>
+    /// <summary>
     /// Lista de pasos ReAct ejecutados durante el proceso.
     /// </summary>
     public List<ReActStep> Steps { get; set; } = new();
 
- /// <summary>
-    /// Indica si el agente complet� exitosamente la tarea.
+    /// <summary>
+    /// Indica si el agente completó exitosamente la tarea.
     /// </summary>
     public bool Success { get; set; }
 
     /// <summary>
-    /// Raz�n por la que termin� (ej: "Objetivo alcanzado", "L�mite de iteraciones", "Error").
+    /// Razón por la que terminó (ej: "Objetivo alcanzado", "Límite de iteraciones", "Error").
     /// </summary>
- public string TerminationReason { get; set; } = string.Empty;
+    public string TerminationReason { get; set; } = string.Empty;
 
     /// <summary>
-    /// N�mero total de iteraciones realizadas.
+    /// Número total de iteraciones realizadas.
     /// </summary>
     public int TotalIterations => Steps.Count;
 
     /// <summary>
-    /// N�mero de herramientas invocadas.
+    /// Número de herramientas invocadas.
     /// </summary>
     public int ToolCallsCount => Steps.Count(s => !string.IsNullOrEmpty(s.ActionTool));
 
     /// <summary>
-    /// Duraci�n total de la ejecuci�n en milisegundos.
+    /// Duración total de la ejecución en milisegundos.
     /// </summary>
     public long TotalDurationMs { get; set; }
 
     /// <summary>
-    /// Timestamp de inicio de la ejecuci�n.
+    /// Timestamp de inicio de la ejecución.
     /// </summary>
     public DateTime StartTime { get; set; }
 
     /// <summary>
-    /// Timestamp de finalizaci�n de la ejecuci�n.
+    /// Timestamp de finalización de la ejecución.
     /// </summary>
     public DateTime EndTime { get; set; }
+
+    /// <summary>
+    /// Acumulador de métricas de tokens para toda la ejecución.
+    /// </summary>
+    public TokenUsageAccumulator TokenMetrics { get; set; } = new();
+
+    /// <summary>
+    /// Formatea un resumen completo con métricas de tokens.
+    /// </summary>
+    public string FormatSummaryWithTokens(bool showCost = false)
+    {
+        var summary = $"📊 Resumen de Ejecución:\n";
+        summary += $"   ⏱️ Duración: {TotalDurationMs}ms\n";
+        summary += $"   🔄 Iteraciones: {TotalIterations}\n";
+        summary += $"   🛠️ Herramientas usadas: {ToolCallsCount}\n";
+        summary += $"   {(Success ? "✅" : "❌")} Estado: {(Success ? "Éxito" : "Fallo")}\n";
+        summary += $"   📝 Razón: {TerminationReason}\n";
+        summary += $"\n{TokenMetrics.FormatSummary(showCost)}";
+        
+        return summary;
+    }
 }

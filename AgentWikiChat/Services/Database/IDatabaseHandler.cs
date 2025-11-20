@@ -1,10 +1,10 @@
-using System.Data;
+锘縰sing System.Data;
 
 namespace AgentWikiChat.Services.Database;
 
 /// <summary>
 /// Interfaz para handlers de bases de datos.
-/// Permite soportar m鷏tiples proveedores (SQL Server, PostgreSQL, MySQL, etc.)
+/// Permite soportar m煤ltiples proveedores (SQL Server, PostgreSQL, MySQL, etc.)
 /// </summary>
 public interface IDatabaseHandler
 {
@@ -17,14 +17,14 @@ public interface IDatabaseHandler
     /// Valida que una consulta SQL sea segura (solo SELECT).
     /// </summary>
     /// <param name="query">Consulta SQL a validar</param>
-    /// <returns>Resultado de validaci髇 con mensaje de error si aplica</returns>
+    /// <returns>Resultado de validaci贸n con mensaje de error si aplica</returns>
     ValidationResult ValidateQuery(string query);
 
     /// <summary>
     /// Ejecuta una consulta SELECT de manera segura.
     /// </summary>
     /// <param name="query">Consulta SQL SELECT</param>
-    /// <param name="maxRows">M醲imo de filas a retornar</param>
+    /// <param name="maxRows">M谩ximo de filas a retornar</param>
     /// <returns>Resultado de la consulta con datos y metadata</returns>
     Task<QueryResult> ExecuteQueryAsync(string query, int maxRows);
 
@@ -34,13 +34,13 @@ public interface IDatabaseHandler
     Task<List<string>> GetTablesAsync();
 
     /// <summary>
-    /// Obtiene el esquema de una tabla espec韋ica.
+    /// Obtiene el esquema de una tabla espec铆fica.
     /// </summary>
     Task<List<ColumnInfo>> GetTableSchemaAsync(string tableName);
 }
 
 /// <summary>
-/// Resultado de validaci髇 de consulta.
+/// Resultado de validaci贸n de consulta.
 /// </summary>
 public class ValidationResult
 {
@@ -52,7 +52,7 @@ public class ValidationResult
 }
 
 /// <summary>
-/// Resultado de ejecuci髇 de consulta.
+/// Resultado de ejecuci贸n de consulta.
 /// </summary>
 public class QueryResult
 {
@@ -64,7 +64,7 @@ public class QueryResult
 }
 
 /// <summary>
-/// Informaci髇 de columna de una tabla.
+/// Informaci贸n de columna de una tabla.
 /// </summary>
 public class ColumnInfo
 {

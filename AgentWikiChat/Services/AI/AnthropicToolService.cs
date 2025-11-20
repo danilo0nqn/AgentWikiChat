@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+Ôªøusing System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentWikiChat.Models;
@@ -35,7 +35,7 @@ public class AnthropicToolService : IToolCallingService
         var provider = providers.FirstOrDefault(p => p.Name == activeProviderName);
 
         if (provider == null)
-            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuraciÛn");
+            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuraci√≥n");
 
         if (string.IsNullOrWhiteSpace(provider.ApiKey))
             throw new InvalidOperationException("API Key de Anthropic no configurada");
@@ -72,8 +72,8 @@ public class AnthropicToolService : IToolCallingService
     public IReadOnlyList<ToolDefinition> GetRegisteredTools() => _tools.AsReadOnly();
 
     /// <summary>
-    /// EnvÌa un mensaje con contexto y herramientas disponibles.
-    /// Anthropic Claude decidir· si necesita invocar alguna herramienta.
+    /// Env√≠a un mensaje con contexto y herramientas disponibles.
+    /// Anthropic Claude decidir√° si necesita invocar alguna herramienta.
     /// </summary>
     public async Task<ToolCallingResponse> SendMessageWithToolsAsync(
         string message,
@@ -82,13 +82,28 @@ public class AnthropicToolService : IToolCallingService
     {
         // Anthropic requiere separar el system message
         var systemMessage = context.FirstOrDefault(m => m.Role == "system")?.Content ?? string.Empty;
-        var conversationMessages = context.Where(m => m.Role != "system").Select(m => new AnthropicMessage
-        {
-            Role = m.Role == "assistant" ? "assistant" : "user",
-            Content = m.Content
-        }).ToList();
 
-        conversationMessages.Add(new AnthropicMessage { Role = "user", Content = message });
+        // Convertir mensajes al formato de Anthropic
+        var conversationMessages = new List<AnthropicMessage>();
+
+        foreach (var msg in context.Where(m => m.Role != "system"))
+        {
+            var anthropicMsg = ConvertToAnthropicMessage(msg);
+            if (anthropicMsg != null)
+            {
+                conversationMessages.Add(anthropicMsg);
+            }
+        }
+
+        // Agregar el mensaje actual del usuario
+        conversationMessages.Add(new AnthropicMessage
+        {
+            Role = "user",
+            Content = new object[]
+            {
+                new { type = "text", text = message }
+            }
+        });
 
         var request = new AnthropicChatRequest
         {
@@ -101,7 +116,17 @@ public class AnthropicToolService : IToolCallingService
         };
 
         var response = await _httpClient.PostAsJsonAsync("/v1/messages", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"‚ùå Error de Anthropic API:");
+            Console.WriteLine($"Status: {response.StatusCode}");
+            Console.WriteLine($"Response: {errorContent}");
+            Console.ResetColor();
+            throw new HttpRequestException($"Anthropic API error: {response.StatusCode} - {errorContent}");
+        }
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -113,40 +138,64 @@ public class AnthropicToolService : IToolCallingService
             });
 
             if (result == null)
-                throw new InvalidOperationException("Respuesta vacÌa de Anthropic");
+                throw new InvalidOperationException("Respuesta vac√≠a de Anthropic");
 
-            // Anthropic puede retornar m˙ltiples content blocks
-            var textContent = result.Content
-                     .Where(c => c.Type == "text")
-         .Select(c => c.Text)
-            .FirstOrDefault();
+            // Extraer texto y tool_use de los content blocks
+            var textContent = string.Empty;
+            var toolCalls = new List<ToolCall>();
 
-            var toolUseBlocks = result.Content
-  .Where(c => c.Type == "tool_use")
-                .ToList();
-
-            // Convertir tool_use blocks a formato unificado
-            List<ToolCall>? toolCalls = null;
-            if (toolUseBlocks.Any())
+            foreach (var content in result.Content)
             {
-                toolCalls = toolUseBlocks.Select(tb => new ToolCall
+                var contentElement = (JsonElement)content;
+                var type = contentElement.GetProperty("type").GetString();
+
+                if (type == "text")
                 {
-                    Id = tb.Id ?? Guid.NewGuid().ToString(),
-                    Type = "function",
-                    Function = new ToolCallFunction
+                    textContent = contentElement.GetProperty("text").GetString() ?? string.Empty;
+                }
+                else if (type == "tool_use")
+                {
+                    var toolCall = new ToolCall
                     {
-                        Name = tb.Name ?? string.Empty,
-                        Arguments = JsonSerializer.SerializeToElement(tb.Input ?? new object())
-                    }
-                }).ToList();
+                        Id = contentElement.GetProperty("id").GetString() ?? Guid.NewGuid().ToString(),
+                        Type = "function",
+                        Function = new ToolCallFunction
+                        {
+                            Name = contentElement.GetProperty("name").GetString() ?? string.Empty,
+                            Arguments = contentElement.GetProperty("input")
+                        }
+                    };
+                    toolCalls.Add(toolCall);
+                }
+            }
+
+            // üìä AGREGAR M√âTRICAS DE TOKENS
+            TokenUsage? tokenUsage = null;
+            if (result.Usage != null)
+            {
+                tokenUsage = new TokenUsage
+                {
+                    PromptTokens = result.Usage.InputTokens,
+                    CompletionTokens = result.Usage.OutputTokens,
+                    ModelName = _model,
+                    Provider = "Anthropic",
+                    Timestamp = DateTime.Now,
+                    EstimatedCost = TokenEstimator.EstimateCost(
+                        "Anthropic",
+                        _model,
+                        result.Usage.InputTokens,
+                        result.Usage.OutputTokens
+                    )
+                };
             }
 
             return new ToolCallingResponse
             {
                 Content = textContent,
-                ToolCalls = toolCalls,
+                ToolCalls = toolCalls.Any() ? toolCalls : null,
                 Role = "assistant",
                 Done = result.StopReason == "end_turn" || result.StopReason == "tool_use",
+                TokenUsage = tokenUsage,  // ‚Üê NUEVO
                 Metadata = new Dictionary<string, object>
                 {
                     ["stop_reason"] = result.StopReason ?? "end_turn",
@@ -157,7 +206,7 @@ public class AnthropicToolService : IToolCallingService
         catch (JsonException ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"? Error deserializando respuesta de Anthropic:");
+            Console.WriteLine($"‚ùå Error deserializando respuesta de Anthropic:");
             Console.WriteLine($"Respuesta cruda: {responseContent}");
             Console.ResetColor();
             throw new InvalidOperationException($"Error deserializando respuesta de Anthropic: {ex.Message}", ex);
@@ -165,10 +214,108 @@ public class AnthropicToolService : IToolCallingService
     }
 
     /// <summary>
-    /// Convierte ToolDefinition (formato unificado) a formato especÌfico de Anthropic.
+    /// Convierte un mensaje interno al formato de Anthropic.
+    /// </summary>
+    private AnthropicMessage? ConvertToAnthropicMessage(Message msg)
+    {
+        // Mensajes de herramienta (tool results)
+        if (msg.Role == "tool")
+        {
+            return new AnthropicMessage
+            {
+                Role = "user",
+                Content = new object[]
+                {
+                    new
+                    {
+                        type = "tool_result",
+                        tool_use_id = msg.ToolCallId,
+                        content = msg.Content
+                    }
+                }
+            };
+        }
+
+        // Mensajes del assistant con tool calls
+        if (msg.Role == "assistant" && msg.ToolCalls != null && msg.ToolCalls.Any())
+        {
+            var contentBlocks = new List<object>();
+
+            // Agregar texto si existe
+            if (!string.IsNullOrEmpty(msg.Content))
+            {
+                contentBlocks.Add(new
+                {
+                    type = "text",
+                    text = msg.Content
+                });
+            }
+
+            // Agregar tool_use blocks
+            foreach (var toolCall in msg.ToolCalls)
+            {
+                contentBlocks.Add(new
+                {
+                    type = "tool_use",
+                    id = toolCall.Id,
+                    name = toolCall.Function.Name,
+                    input = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                        toolCall.Function.Arguments.GetRawText())
+                });
+            }
+
+            return new AnthropicMessage
+            {
+                Role = "assistant",
+                Content = contentBlocks.ToArray()
+            };
+        }
+
+        // Mensajes regulares de usuario o assistant
+        if (msg.Role == "user" || msg.Role == "assistant")
+        {
+            return new AnthropicMessage
+            {
+                Role = msg.Role,
+                Content = new object[]
+                {
+                    new
+                    {
+                        type = "text",
+                        text = msg.Content
+                    }
+                }
+            };
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Convierte ToolDefinition (formato unificado) a formato espec√≠fico de Anthropic.
     /// </summary>
     private AnthropicTool ConvertToAnthropicTool(ToolDefinition tool)
     {
+        // Convertir propiedades al formato de Anthropic
+        var properties = new Dictionary<string, object>();
+
+        foreach (var prop in tool.Function.Parameters.Properties)
+        {
+            var anthropicProp = new Dictionary<string, object>
+            {
+                ["type"] = prop.Value.Type,
+                ["description"] = prop.Value.Description
+            };
+
+            // Solo agregar enum si tiene valores
+            if (prop.Value.Enum != null && prop.Value.Enum.Any())
+            {
+                anthropicProp["enum"] = prop.Value.Enum;
+            }
+
+            properties[prop.Key] = anthropicProp;
+        }
+
         return new AnthropicTool
         {
             Name = tool.Function.Name,
@@ -176,16 +323,8 @@ public class AnthropicToolService : IToolCallingService
             InputSchema = new AnthropicInputSchema
             {
                 Type = "object",
-                Properties = tool.Function.Parameters.Properties.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => new AnthropicProperty
-                    {
-                        Type = kvp.Value.Type,
-                        Description = kvp.Value.Description,
-                        Enum = kvp.Value.Enum
-                    }
-                ),
-                Required = tool.Function.Parameters.Required
+                Properties = properties,
+                Required = tool.Function.Parameters.Required ?? new List<string>()
             }
         };
     }
@@ -222,7 +361,7 @@ internal class AnthropicMessage
     public string Role { get; set; } = string.Empty;
 
     [JsonPropertyName("content")]
-    public string Content { get; set; } = string.Empty;
+    public object[] Content { get; set; } = Array.Empty<object>();
 }
 
 internal class AnthropicTool
@@ -243,22 +382,10 @@ internal class AnthropicInputSchema
     public string Type { get; set; } = "object";
 
     [JsonPropertyName("properties")]
-    public Dictionary<string, AnthropicProperty> Properties { get; set; } = new();
+    public Dictionary<string, object> Properties { get; set; } = new();
 
     [JsonPropertyName("required")]
     public List<string> Required { get; set; } = new();
-}
-
-internal class AnthropicProperty
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
-
-    [JsonPropertyName("description")]
-    public string Description { get; set; } = string.Empty;
-
-    [JsonPropertyName("enum")]
-    public List<string>? Enum { get; set; }
 }
 
 internal class AnthropicChatResponse
@@ -273,31 +400,13 @@ internal class AnthropicChatResponse
     public string Role { get; set; } = string.Empty;
 
     [JsonPropertyName("content")]
-    public List<AnthropicContentBlock> Content { get; set; } = new();
+    public List<object> Content { get; set; } = new();
 
     [JsonPropertyName("stop_reason")]
     public string? StopReason { get; set; }
 
     [JsonPropertyName("usage")]
     public AnthropicUsage? Usage { get; set; }
-}
-
-internal class AnthropicContentBlock
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
-
-    [JsonPropertyName("text")]
-    public string? Text { get; set; }
-
-    [JsonPropertyName("id")]
-    public string? Id { get; set; }
-
-    [JsonPropertyName("name")]
-    public string? Name { get; set; }
-
-    [JsonPropertyName("input")]
-    public object? Input { get; set; }
 }
 
 internal class AnthropicUsage

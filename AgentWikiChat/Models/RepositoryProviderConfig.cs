@@ -1,8 +1,8 @@
-namespace AgentWikiChat.Models;
+ï»¿namespace AgentWikiChat.Models;
 
 /// <summary>
-/// Configuración para un proveedor de control de versiones.
-/// Similar a AIProviderConfig, permite tener múltiples repositorios configurados.
+/// ConfiguraciÃ³n para un proveedor de control de versiones.
+/// Similar a AIProviderConfig, permite tener mÃºltiples repositorios configurados.
 /// </summary>
 public class RepositoryProviderConfig
 {
@@ -22,12 +22,12 @@ public class RepositoryProviderConfig
     public string RepositoryUrl { get; set; } = string.Empty;
 
     /// <summary>
-    /// Nombre de usuario para autenticación.
+    /// Nombre de usuario para autenticaciÃ³n.
     /// </summary>
     public string Username { get; set; } = string.Empty;
 
     /// <summary>
-    /// Contraseña o token de acceso para autenticación.
+    /// ContraseÃ±a o token de acceso para autenticaciÃ³n.
     /// </summary>
     public string Password { get; set; } = string.Empty;
 

@@ -18,7 +18,7 @@ Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
 // Configurar Console Logger
-var loggingConfig = configuration.GetSection("Logging");
+var loggingConfig = configuration.GetSection("SessionLogging");
 var enableSessionLogging = loggingConfig.GetValue("EnableSessionLogging", true);
 var logDirectory = loggingConfig.GetValue("LogDirectory", "Logs/Sessions") ?? "Logs/Sessions";
 var logFilePrefix = loggingConfig.GetValue("LogFilePrefix", "session") ?? "session";
@@ -72,13 +72,26 @@ try
     });
 
     // Handlers con soporte de Tools
-    services.AddSingleton<IToolHandler, WikipediaHandler>();  // Expone 2 tools: search + article
-    services.AddSingleton<IToolHandler>(sp => new RAGToolHandler(
-        sp.GetRequiredService<IConfiguration>(),
-        sp.GetRequiredService<IHttpClientFactory>()));
-    services.AddSingleton<IToolHandler, RAGToolHandler>();     // Para RAG general (futuro)
-    services.AddSingleton<IToolHandler>(sp => new DatabaseToolHandler(sp.GetRequiredService<IConfiguration>()));
-    services.AddSingleton<IToolHandler>(sp => new RepositoryToolHandler(sp.GetRequiredService<IConfiguration>()));
+    var toolsConfigSection = configuration.GetSection("Tools");
+    bool EnableWikipedia = toolsConfigSection.GetSection("WikipediaSearch").GetValue("Enable", false);
+    bool EnableDatabase = toolsConfigSection.GetSection("Database").GetValue("EnableDatabase", false);
+    bool EnableDatabaseSchema = toolsConfigSection.GetSection("Database").GetValue("EnableDatabaseSchema", false);
+    bool EnableRepository = toolsConfigSection.GetSection("Repository").GetValue("Enable", false);
+    bool EnableRAG = toolsConfigSection.GetSection("RAG").GetValue("Enable", false);
+
+    if (EnableWikipedia)
+        services.AddSingleton<IToolHandler, WikipediaHandler>();
+    if (EnableRAG)
+        services.AddSingleton<IToolHandler>(sp => new RAGToolHandler(sp.GetRequiredService<IConfiguration>(), sp.GetRequiredService<IHttpClientFactory>()));
+    if (EnableDatabase)
+        services.AddSingleton<IToolHandler>(sp => new DatabaseToolHandler(sp.GetRequiredService<IConfiguration>()));
+    if (EnableDatabaseSchema)
+        services.AddSingleton<IToolHandler>(sp => new DatabaseSchemaHandler(sp.GetRequiredService<IConfiguration>()));
+    if (EnableRepository)
+        services.AddSingleton<IToolHandler>(sp => new RepositoryToolHandler(sp.GetRequiredService<IConfiguration>()));
+
+
+
 
     // Orchestrator con sistema de tools multi-provider + ReAct Engine
     services.AddSingleton(sp =>
@@ -142,16 +155,37 @@ try
     // Log de inicio
     var appName = configuration["AppSettings:AppName"] ?? "AgentWikiChat";
     var version = configuration["AppSettings:Version"] ?? "3.0.0";
-    var systemPrompt = configuration["AppSettings:SystemPrompt"]
-        ?? "Eres un asistente útil experto en tecnología y amigable. Recuerda el contexto de la conversación.";
+
+    // 📝 CARGAR SYSTEM PROMPT DESDE ARCHIVO EXTERNO
+    var systemPromptPath = configuration["AppSettings:SystemPromptPath"] ?? "Prompts/SystemPrompt.txt";
+    var systemPrompt = LoadSystemPrompt(systemPromptPath);
 
     // Aplicación de consola interactiva
     Console.WriteLine($"=== {appName} v{version} ===");
+    //Console.WriteLine("""
+    string banner = """
+
+ ▄▄▄▄▄▄▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄   ▄▄        ▄   ▄▄▄▄▄▄▄▄▄▄▄         ▄         ▄   ▄▄▄▄▄▄▄   ▄    ▄   ▄▄▄▄▄▄▄ 
+▐░░░░░░░░░░░▌ ▐░░░░░░░░░░░▌ ▐░░░░░░░░░░░▌ ▐░░▌      ▐░▌ ▐░░░░░░░░░░░▌       ▐░▌       ▐░▌ ▐░░░░░░░▌ ▐░▌  ▐░▌ ▐░░░░░░░▌
+▐░█▀▀▀▀▀▀▀█░▌ ▐░█▀▀▀▀▀▀▀▀▀  ▐░█▀▀▀▀▀▀▀▀▀  ▐░▌░▌     ▐░▌  ▀▀▀▀█░█▀▀▀▀        ▐░▌       ▐░▌  ▀▀█░█▀▀  ▐░▌ ▐░▌   ▀▀█░█▀▀ 
+▐░▌       ▐░▌ ▐░▌           ▐░▌           ▐░▌▐░▌    ▐░▌      ▐░▌            ▐░▌       ▐░▌    ▐░▌    ▐░▌▐░▌      ▐░▌   
+▐░█▄▄▄▄▄▄▄█░▌ ▐░▌ ▄▄▄▄▄▄▄▄  ▐░█▄▄▄▄▄▄▄▄▄  ▐░▌ ▐░▌   ▐░▌      ▐░▌            ▐░▌   ▄   ▐░▌    ▐░▌    ▐░▌░▌       ▐░▌   
+▐░░░░░░░░░░░▌ ▐░▌▐░░░░░░░░▌ ▐░░░░░░░░░░░▌ ▐░▌  ▐░▌  ▐░▌      ▐░▌            ▐░▌  ▐░▌  ▐░▌    ▐░▌    ▐░░▌        ▐░▌   
+▐░█▀▀▀▀▀▀▀█░▌ ▐░▌ ▀▀▀▀▀▀█░▌ ▐░█▀▀▀▀▀▀▀▀▀  ▐░▌   ▐░▌ ▐░▌      ▐░▌            ▐░▌ ▐░▌░▌ ▐░▌    ▐░▌    ▐░▌░▌       ▐░▌   
+▐░▌       ▐░▌ ▐░▌       ▐░▌ ▐░▌           ▐░▌    ▐░▌▐░▌      ▐░▌            ▐░▌▐░▌ ▐░▌▐░▌    ▐░▌    ▐░▌▐░▌      ▐░▌   
+▐░▌       ▐░▌ ▐░█▄▄▄▄▄▄▄█░▌ ▐░█▄▄▄▄▄▄▄▄▄  ▐░▌     ▐░▐░▌      ▐░▌            ▐░▌░▌   ▐░▐░▌  ▄▄█░█▄▄  ▐░▌ ▐░▌   ▄▄█░█▄▄ 
+▐░▌       ▐░▌ ▐░░░░░░░░░░░▌ ▐░░░░░░░░░░░▌ ▐░▌      ▐░░▌      ▐░▌            ▐░░▌     ▐░░▌ ▐░░░░░░░▌ ▐░▌  ▐░▌ ▐░░░░░░░▌
+ ▀         ▀   ▀▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀   ▀        ▀▀        ▀              ▀▀       ▀▀   ▀▀▀▀▀▀▀   ▀    ▀   ▀▀▀▀▀▀▀ 
+                                                                                                                     
+""";
+    PrintGradient(banner);
+
     Console.WriteLine($"🤖 Proveedor IA: {toolService.GetProviderName()}");
     Console.WriteLine($"🎯 Sistema: Multi-Provider Tool Calling + ReAct Pattern");
     Console.WriteLine($"🌐 Proveedores: Ollama, OpenAI, LM Studio, Anthropic, Gemini");
     Console.WriteLine($"🧠 ReAct Engine: {(agentConfig.EnableReActPattern ? "✅ ACTIVADO" : "⚠️ DESACTIVADO")}");
     Console.WriteLine($"🔗 Multi-Tool Loop: {(agentConfig.EnableMultiToolLoop ? "✅ ACTIVADO" : "⚠️ DESACTIVADO")} (máx {agentConfig.MaxIterations} iteraciones)");
+    Console.WriteLine($"📄 System Prompt: {Path.GetFileName(systemPromptPath)}");
 
     if (enableSessionLogging && consoleLogger != null)
     {
@@ -160,6 +194,9 @@ try
     }
 
     PrintCommandHelp();
+    Console.ForegroundColor = ConsoleColor.DarkCyan;
+    Console.WriteLine("=======================================================================================================================");
+    Console.ResetColor();
     Console.WriteLine();
 
     if (debugMode)
@@ -175,7 +212,7 @@ try
 
     while (true)
     {
-        Console.ForegroundColor = ConsoleColor.DarkGreen;
+        Console.ForegroundColor = ConsoleColor.Blue;
         Console.Write(" " + Prompt() + " Tú> ");
 
         var input = Console.ReadLine();
@@ -242,6 +279,7 @@ try
             Console.WriteLine($"   👁️  Pasos intermedios: {(agentConfig.ShowIntermediateSteps ? "✅" : "❌")}");
             Console.WriteLine($"   🔧 Auto-corrección: {(agentConfig.EnableSelfCorrection ? "✅" : "❌")}");
             Console.WriteLine($"   📢 Modo verbose: {(agentConfig.VerboseMode ? "✅" : "❌")}");
+            Console.WriteLine($"   📄 System Prompt: {Path.GetFileName(systemPromptPath)}");
             Console.WriteLine();
             Console.ResetColor();
             continue;
@@ -250,7 +288,7 @@ try
         if (input.ToLower() == "/limpiar")
         {
             memory.ClearAll();
-            // Restaurar system prompt desde configuración
+            // Restaurar system prompt desde archivo
             memory.AddToGlobal("system", systemPrompt);
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("🧹 Memoria limpiada correctamente");
@@ -264,14 +302,15 @@ try
 
         try
         {
-            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.Write(" " + Bot() + " Bot: ");
             Console.ResetColor();
 
             // Procesar consulta - Orchestrator maneja la memoria internamente
             var response = await orchestrator.ProcessQueryAsync(input);
 
-            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(response);
             Console.ResetColor();
 
@@ -305,4 +344,75 @@ finally
 {
     // Asegurar que el logger se cierre correctamente al finalizar
     consoleLogger?.Dispose();
+}
+
+/// <summary>
+/// Carga el System Prompt desde un archivo externo.
+/// Si el archivo no existe o hay error, usa un prompt por defecto.
+/// </summary>
+static string LoadSystemPrompt(string promptPath)
+{
+    const string defaultPrompt = "Sos un asistente útil con acceso a múltiples herramientas especializadas. " +
+                                "Ayudá al usuario de la manera más eficiente posible usando las herramientas disponibles.";
+
+    try
+    {
+        // Verificar si el path es relativo o absoluto
+        var fullPath = Path.IsPathRooted(promptPath)
+            ? promptPath
+            : Path.Combine(Directory.GetCurrentDirectory(), promptPath);
+
+        if (!File.Exists(fullPath))
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"⚠️  Archivo de System Prompt no encontrado: {fullPath}");
+            Console.WriteLine($"⚠️  Usando prompt por defecto.");
+            Console.ResetColor();
+            return defaultPrompt;
+        }
+
+        var content = File.ReadAllText(fullPath, Encoding.UTF8);
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"⚠️  Archivo de System Prompt está vacío: {fullPath}");
+            Console.WriteLine($"⚠️  Usando prompt por defecto.");
+            Console.ResetColor();
+            return defaultPrompt;
+        }
+
+        return content.Trim();
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"❌ Error al cargar System Prompt desde '{promptPath}': {ex.Message}");
+        Console.WriteLine($"⚠️  Usando prompt por defecto.");
+        Console.ResetColor();
+        return defaultPrompt;
+    }
+}
+
+
+static void PrintGradient(string text)
+{
+    // Color inicial (azul)
+    (int r1, int g1, int b1) = (0, 120, 255);
+    // Color final (blanco)
+    (int r2, int g2, int b2) = (255, 255, 255);
+
+    int total = text.Length;
+    for (int i = 0; i < total; i++)
+    {
+        double t = (double)i / total;
+
+        int r = (int)(r1 + (r2 - r1) * t);
+        int g = (int)(g1 + (g2 - g1) * t);
+        int b = (int)(b1 + (b2 - b1) * t);
+
+        Console.Write($"\u001b[38;2;{r};{g};{b}m{text[i]}");
+    }
+
+    Console.WriteLine("\u001b[0m");
 }

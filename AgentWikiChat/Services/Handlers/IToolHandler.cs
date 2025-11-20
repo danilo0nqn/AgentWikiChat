@@ -1,11 +1,11 @@
-using AgentWikiChat.Models;
+Ôªøusing AgentWikiChat.Models;
 
 namespace AgentWikiChat.Services.Handlers;
 
 /// <summary>
 /// Interfaz para handlers que soportan Tool Calling con cualquier proveedor.
-/// Los handlers implementan esta interfaz para definir quÈ herramienta manejan
-/// y cÛmo procesarla con par·metros estructurados.
+/// Los handlers implementan esta interfaz para definir qu√© herramienta manejan
+/// y c√≥mo procesarla con par√°metros estructurados.
 /// </summary>
 public interface IToolHandler
 {
@@ -15,15 +15,15 @@ public interface IToolHandler
     string ToolName { get; }
 
     /// <summary>
-    /// DefiniciÛn de la herramienta para que el LLM sepa cu·ndo y cÛmo invocarla.
-    /// Formato agnÛstico compatible con todos los proveedores.
+    /// Definici√≥n de la herramienta para que el LLM sepa cu√°ndo y c√≥mo invocarla.
+    /// Formato agn√≥stico compatible con todos los proveedores.
     /// </summary>
     ToolDefinition GetToolDefinition();
 
     /// <summary>
-    /// Ejecuta el handler con los par·metros estructurados extraÌdos por el LLM.
+    /// Ejecuta el handler con los par√°metros estructurados extra√≠dos por el LLM.
     /// </summary>
-    /// <param name="parameters">Par·metros estructurados de la tool call</param>
+    /// <param name="parameters">Par√°metros estructurados de la tool call</param>
     /// <param name="memory">Servicio de memoria para contexto</param>
     /// <returns>Respuesta generada por el handler</returns>
     Task<string> HandleAsync(ToolParameters parameters, MemoryService memory);

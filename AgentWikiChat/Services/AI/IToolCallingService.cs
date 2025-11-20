@@ -1,4 +1,4 @@
-using AgentWikiChat.Models;
+ï»¿using AgentWikiChat.Models;
 
 namespace AgentWikiChat.Services.AI;
 
@@ -14,7 +14,7 @@ public interface IToolCallingService
     void RegisterTool(ToolDefinition tool);
 
     /// <summary>
-    /// Registra múltiples herramientas.
+    /// Registra mÃºltiples herramientas.
     /// </summary>
     void RegisterTools(IEnumerable<ToolDefinition> tools);
 
@@ -24,12 +24,12 @@ public interface IToolCallingService
     IReadOnlyList<ToolDefinition> GetRegisteredTools();
 
     /// <summary>
-    /// Envía un mensaje con contexto y herramientas disponibles.
-    /// El LLM decidirá si necesita invocar alguna herramienta.
+    /// EnvÃ­a un mensaje con contexto y herramientas disponibles.
+    /// El LLM decidirÃ¡ si necesita invocar alguna herramienta.
     /// </summary>
     /// <param name="message">Mensaje del usuario</param>
     /// <param name="context">Historial de mensajes previos</param>
-    /// <param name="cancellationToken">Token de cancelación</param>
+    /// <param name="cancellationToken">Token de cancelaciÃ³n</param>
     /// <returns>Respuesta unificada con posibles tool calls</returns>
     Task<ToolCallingResponse> SendMessageWithToolsAsync(
         string message,

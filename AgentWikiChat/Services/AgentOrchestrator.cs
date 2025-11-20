@@ -101,8 +101,9 @@ public class AgentOrchestrator
             // NUEVO: Usar ReActEngine para multi-tool loop
             if (_debugMode)
             {
+                Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"🧠 Usando ReAct Engine (Multi-Tool Loop)");
+                Console.WriteLine($"[MODO] 🧠 Usando ReAct Engine (Multi-Tool Loop)");
                 Console.ResetColor();
             }
 
@@ -120,14 +121,14 @@ public class AgentOrchestrator
             finalResponse = executionResult.FinalAnswer;
 
             // Mostrar métricas si está en debug
-            if (_debugMode)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine($"\n📊 Métricas: {executionResult.TotalIterations} iteraciones, " +
-               $"{executionResult.ToolCallsCount} herramientas, " +
-       $"{executionResult.TotalDurationMs}ms");
-                Console.ResetColor();
-            }
+            //if (_debugMode)
+            //{
+            //    Console.ForegroundColor = ConsoleColor.DarkGray;
+            //    Console.WriteLine($"\n📊 Métricas: {executionResult.TotalIterations} iteraciones, " +
+            //                    $"{executionResult.ToolCallsCount} herramientas, " +
+            //                    $"{executionResult.TotalDurationMs}ms");
+            //    Console.ResetColor();
+            //}
         }
         else
         {
@@ -135,7 +136,7 @@ public class AgentOrchestrator
             if (_debugMode)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"🔍 Usando modo legacy (single tool call)");
+                Console.WriteLine($"[MODO] 🔍 Usando modo legacy (single tool call)");
                 Console.ResetColor();
             }
 
@@ -176,7 +177,7 @@ public class AgentOrchestrator
         if (_debugMode)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"🛠️  {_toolService.GetProviderName()} invocó tool: {toolCall.Function.Name}");
+            Console.WriteLine($"[TOOL] 🛠️  {_toolService.GetProviderName()} invocó tool: {toolCall.Function.Name}");
             Console.WriteLine($"📋 Argumentos: {toolCall.Function.GetArgumentsAsString()}");
             Console.ResetColor();
         }
@@ -207,9 +208,14 @@ public class AgentOrchestrator
     public void PrintAvailableHandlers()
     {
         Console.WriteLine("\n🛠️  Herramientas disponibles:");
+        Console.WriteLine("-----------------------------");
         foreach (var tool in _registeredTools)
         {
-            Console.WriteLine($"   - {tool.Function.Name}: {tool.Function.Description}");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write($"   - {tool.Function.Name}: ");
+            Console.ResetColor();
+            Console.WriteLine($"{tool.Function.Description}");
+            Console.WriteLine();
         }
         Console.WriteLine();
     }

@@ -54,5 +54,7 @@ secrets.json
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Otros
 /AgentWikiChat/Scripts
-/AgentWikiChat/Docs/SVN-TroubleshootingGuide.md
+/AgentWikiChat/Docs

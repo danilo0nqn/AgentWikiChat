@@ -1,9 +1,9 @@
-using System.Text.RegularExpressions;
+ï»¿using System.Text.RegularExpressions;
 
 namespace AgentWikiChat.Services.Database;
 
 /// <summary>
-/// Clase base abstracta con lógica común de validación para todos los proveedores.
+/// Clase base abstracta con lÃ³gica comÃºn de validaciÃ³n para todos los proveedores.
 /// </summary>
 public abstract class BaseDatabaseHandler : IDatabaseHandler
 {
@@ -21,19 +21,19 @@ public abstract class BaseDatabaseHandler : IDatabaseHandler
     public abstract Task<List<ColumnInfo>> GetTableSchemaAsync(string tableName);
 
     /// <summary>
-    /// Validación común para todos los proveedores.
+    /// ValidaciÃ³n comÃºn para todos los proveedores.
     /// </summary>
     public virtual ValidationResult ValidateQuery(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
-            return ValidationResult.Fail("La consulta está vacía.");
+            return ValidationResult.Fail("La consulta estÃ¡ vacÃ­a.");
         }
 
         // Normalizar: remover comentarios y limpiar espacios
         var normalizedQuery = RemoveSqlComments(query).Trim();
 
-        // 1. Verificar que empiece con SELECT (ignorando espacios y saltos de línea)
+        // 1. Verificar que empiece con SELECT (ignorando espacios y saltos de lÃ­nea)
         if (!Regex.IsMatch(normalizedQuery, @"^\s*SELECT\s+", RegexOptions.IgnoreCase))
         {
             return ValidationResult.Fail("Solo se permiten consultas SELECT. La consulta debe comenzar con SELECT.");
@@ -42,7 +42,7 @@ public abstract class BaseDatabaseHandler : IDatabaseHandler
         // 2. Buscar palabras clave prohibidas
         foreach (var keyword in ProhibitedKeywords)
         {
-            // Buscar la palabra completa (con límites de palabra)
+            // Buscar la palabra completa (con lÃ­mites de palabra)
             var pattern = $@"\b{Regex.Escape(keyword)}\b";
             if (Regex.IsMatch(normalizedQuery, pattern, RegexOptions.IgnoreCase))
             {
@@ -50,7 +50,7 @@ public abstract class BaseDatabaseHandler : IDatabaseHandler
             }
         }
 
-        // 3. Verificar que no contenga punto y coma seguido de otra instrucción
+        // 3. Verificar que no contenga punto y coma seguido de otra instrucciÃ³n
         var statements = normalizedQuery.Split(';')
             .Select(s => s.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -58,10 +58,10 @@ public abstract class BaseDatabaseHandler : IDatabaseHandler
 
         if (statements.Count > 1)
         {
-            return ValidationResult.Fail("No se permiten múltiples instrucciones SQL (separadas por ;). Solo una consulta SELECT por vez.");
+            return ValidationResult.Fail("No se permiten mÃºltiples instrucciones SQL (separadas por ;). Solo una consulta SELECT por vez.");
         }
 
-        // 4. Verificar que no contenga -- (comentarios inline que podrían ocultar código)
+        // 4. Verificar que no contenga -- (comentarios inline que podrÃ­an ocultar cÃ³digo)
         if (normalizedQuery.Contains("--"))
         {
             return ValidationResult.Fail("No se permiten comentarios inline (--) en la consulta por razones de seguridad.");
@@ -78,7 +78,7 @@ public abstract class BaseDatabaseHandler : IDatabaseHandler
         // Remover comentarios de bloque /* */
         sql = Regex.Replace(sql, @"/\*.*?\*/", "", RegexOptions.Singleline);
 
-        // Remover comentarios de línea --
+        // Remover comentarios de lÃ­nea --
         sql = Regex.Replace(sql, @"--.*?$", "", RegexOptions.Multiline);
 
         return sql;

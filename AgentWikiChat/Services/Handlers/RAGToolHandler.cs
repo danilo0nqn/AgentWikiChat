@@ -26,7 +26,7 @@ public class RAGToolHandler : IToolHandler
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
 
-        var ragConfig = configuration.GetSection("RAG");
+        var ragConfig = configuration.GetSection("Tools").GetSection("RAG");
         _lmStudioEmbeddingsUrl = ragConfig.GetValue<string>("LmStudioEmbeddings")
             ?? "http://localhost:1234/v1/embeddings";
         _chromaApiUrl = ragConfig.GetValue<string>("ChromaApi")

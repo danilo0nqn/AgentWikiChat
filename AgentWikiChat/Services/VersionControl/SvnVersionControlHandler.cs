@@ -1,11 +1,11 @@
-using Microsoft.Extensions.Configuration;
+Ôªøusing Microsoft.Extensions.Configuration;
 using System.Diagnostics;
 using System.Text;
 
 namespace AgentWikiChat.Services.VersionControl;
 
 /// <summary>
-/// ImplementaciÛn especÌfica para Subversion (SVN).
+/// Implementaci√≥n espec√≠fica para Subversion (SVN).
 /// SEGURIDAD: Solo permite operaciones de lectura.
 /// </summary>
 public class SvnVersionControlHandler : BaseVersionControlHandler
@@ -20,7 +20,7 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
         "log", "info", "list", "cat", "diff", "blame", "status"
     };
 
-    // Comandos prohibidos (escritura/modificaciÛn)
+    // Comandos prohibidos (escritura/modificaci√≥n)
     private static readonly string[] ProhibitedCommands = new[]
     {
         "commit", "ci", "delete", "del", "remove", "rm",
@@ -34,7 +34,7 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
     public SvnVersionControlHandler(IConfiguration configuration)
         : base(configuration)
     {
-        // Verificar si SVN est· instalado (solo una vez)
+        // Verificar si SVN est√° instalado (solo una vez)
         if (_svnInstalled == null)
         {
             _svnInstalled = IsClientInstalled();
@@ -49,13 +49,13 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
             }
             else
             {
-                LogError($"[SVN] ?? Cliente SVN no encontrado en el sistema");
+                LogError($"[SVN] ‚ö†Ô∏è Cliente SVN no encontrado en el sistema");
             }
         }
 
         LogDebug($"[SVN] Inicializado - URL: {RepositoryUrl}, Timeout: {CommandTimeout}s");
 
-        // DiagnÛstico inicial
+        // Diagn√≥stico inicial
         if (_svnInstalled == true)
         {
             _ = TestConnectionAsync().Result; // Fire and forget para no bloquear
@@ -108,7 +108,7 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
         try
         {
             //return true;
-            LogDebug($"[SVN] Probando conexiÛn con {RepositoryUrl}...");
+            LogDebug($"[SVN] Probando conexi√≥n con {RepositoryUrl}...");
 
             var args = new List<string> { "info", $"\"{RepositoryUrl}\"" };
 
@@ -147,19 +147,19 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
 
             if (process.ExitCode == 0)
             {
-                LogDebug($"[SVN] ? ConexiÛn exitosa con el repositorio");
+                LogDebug($"[SVN] ‚úÖ Conexi√≥n exitosa con el repositorio");
                 return true;
             }
             else
             {
                 var error = await process.StandardError.ReadToEndAsync();
-                LogWarning($"[SVN] ?? Problema al conectar: {error.Substring(0, Math.Min(200, error.Length))}");
+                LogWarning($"[SVN] ‚ö†Ô∏è Problema al conectar: {error.Substring(0, Math.Min(200, error.Length))}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            LogWarning($"[SVN] ?? No se pudo verificar conexiÛn: {ex.Message}");
+            LogWarning($"[SVN] ‚ö†Ô∏è No se pudo verificar conexi√≥n: {ex.Message}");
             return false;
         }
     }
@@ -168,7 +168,7 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
     {
         if (!IsOperationAllowed(operation))
         {
-            throw new InvalidOperationException($"OperaciÛn '{operation}' no est· permitida. Solo operaciones de lectura.");
+            throw new InvalidOperationException($"Operaci√≥n '{operation}' no est√° permitida. Solo operaciones de lectura.");
         }
 
         var svnCommand = BuildSvnCommand(operation, parameters);
@@ -212,20 +212,20 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
         if (!completed)
         {
             process.Kill();
-            throw new TimeoutException($"La operaciÛn SVN excediÛ el timeout de {CommandTimeout} segundos.");
+            throw new TimeoutException($"La operaci√≥n SVN excedi√≥ el timeout de {CommandTimeout} segundos.");
         }
 
         if (process.ExitCode != 0)
         {
             var error = errorBuilder.ToString().Trim();
-            throw new InvalidOperationException($"SVN retornÛ cÛdigo de error {process.ExitCode}: {error}");
+            throw new InvalidOperationException($"SVN retorn√≥ c√≥digo de error {process.ExitCode}: {error}");
         }
 
         var output = outputBuilder.ToString().Trim();
 
         if (string.IsNullOrEmpty(output))
         {
-            return "? La operaciÛn se completÛ exitosamente pero no retornÛ datos.";
+            return "‚ÑπÔ∏è La operaci√≥n se complet√≥ exitosamente pero no retorn√≥ datos.";
         }
 
         return output;
@@ -252,15 +252,15 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
     public override string GetInstallationInstructions()
     {
         var message = new StringBuilder();
-        message.AppendLine("? **Cliente SVN No Encontrado**\n");
+        message.AppendLine("‚ö†Ô∏è **Cliente SVN No Encontrado**\n");
         message.AppendLine("El sistema no puede encontrar el ejecutable `svn` (Subversion client).\n");
-        message.AppendLine("**?? Soluciones:**\n");
+        message.AppendLine("**üí° Soluciones:**\n");
         message.AppendLine("**Windows:**");
         message.AppendLine("1. Instalar TortoiseSVN: https://tortoisesvn.net/");
-        message.AppendLine("   - Durante la instalaciÛn, marcar: *\"command line client tools\"*");
+        message.AppendLine("   - Durante la instalaci√≥n, marcar: *\"command line client tools\"*");
         message.AppendLine("2. O instalar Apache Subversion: https://subversion.apache.org/packages.html");
         message.AppendLine("3. Agregar al PATH: `C:\\Program Files\\TortoiseSVN\\bin`");
-        message.AppendLine("4. Reiniciar la aplicaciÛn\n");
+        message.AppendLine("4. Reiniciar la aplicaci√≥n\n");
         message.AppendLine("**Linux (Ubuntu/Debian):**");
         message.AppendLine("```bash");
         message.AppendLine("sudo apt-get update");
@@ -274,11 +274,11 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
         message.AppendLine("```bash");
         message.AppendLine("brew install svn");
         message.AppendLine("```\n");
-        message.AppendLine("**? Verificar instalaciÛn:**");
+        message.AppendLine("**‚úÖ Verificar instalaci√≥n:**");
         message.AppendLine("```bash");
         message.AppendLine("svn --version");
         message.AppendLine("```\n");
-        message.AppendLine("?? DespuÈs de instalar, reinicia esta aplicaciÛn.");
+        message.AppendLine("üí° Despu√©s de instalar, reinicia esta aplicaci√≥n.");
 
         return message.ToString();
     }
@@ -286,16 +286,16 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
     public override string GetErrorSuggestions(string errorMessage)
     {
         var suggestions = new StringBuilder();
-        suggestions.AppendLine("?? **Posibles soluciones:**\n");
+        suggestions.AppendLine("üí° **Posibles soluciones:**\n");
 
         if (errorMessage.Contains("E170013") || errorMessage.Contains("Unable to connect"))
         {
-            suggestions.AppendLine("**Problema de conexiÛn detectado:**");
-            suggestions.AppendLine("1. ?? Verifica que la URL sea correcta: `" + RepositoryUrl + "`");
-            suggestions.AppendLine("2. ?? Verifica conectividad de red al servidor (ping, firewall)");
-            suggestions.AppendLine("3. ?? Verifica credenciales (usuario/password)");
-            suggestions.AppendLine("4. ?? El servidor puede requerir certificado SSL v·lido");
-            suggestions.AppendLine("5. ?? Intenta usar una working copy local si tienes una (configura `WorkingCopyPath`)");
+            suggestions.AppendLine("**Problema de conexi√≥n detectado:**");
+            suggestions.AppendLine("1. üîç Verifica que la URL sea correcta: `" + RepositoryUrl + "`");
+            suggestions.AppendLine("2. üåê Verifica conectividad de red al servidor (ping, firewall)");
+            suggestions.AppendLine("3. üîë Verifica credenciales (usuario/password)");
+            suggestions.AppendLine("4. üîí El servidor puede requerir certificado SSL v√°lido");
+            suggestions.AppendLine("5. üìÅ Intenta usar una working copy local si tienes una (configura `WorkingCopyPath`)");
             suggestions.AppendLine();
             suggestions.AppendLine("**Prueba manual:**");
             suggestions.AppendLine("```bash");
@@ -305,21 +305,21 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
         else if (errorMessage.Contains("E120112") || errorMessage.Contains("APR does not understand"))
         {
             suggestions.AppendLine("**Error de APR (Apache Portable Runtime):**");
-            suggestions.AppendLine("1. ?? Puede ser un problema temporal del servidor");
-            suggestions.AppendLine("2. ?? Reinstala el cliente SVN (TortoiseSVN con command line tools)");
-            suggestions.AppendLine("3. ??? Problema con autenticaciÛn guardada - limpia cache:");
+            suggestions.AppendLine("1. ‚è±Ô∏è Puede ser un problema temporal del servidor");
+            suggestions.AppendLine("2. üîÑ Reinstala el cliente SVN (TortoiseSVN con command line tools)");
+            suggestions.AppendLine("3. üóëÔ∏è Problema con autenticaci√≥n guardada - limpia cache:");
             suggestions.AppendLine("   - Windows: Elimina `%APPDATA%\\Subversion\\auth`");
             suggestions.AppendLine("   - Linux/Mac: Elimina `~/.subversion/auth`");
         }
         else if (errorMessage.Contains("E170001") || errorMessage.Contains("authorization"))
         {
-            suggestions.AppendLine("**Problema de autenticaciÛn:**");
-            suggestions.AppendLine("1. ?? Verifica usuario/contraseÒa en appsettings.json");
-            suggestions.AppendLine("2. ?? Verifica que el usuario tenga permisos de lectura");
-            suggestions.AppendLine("3. ?? Intenta autenticarte manualmente primero con `svn info`");
+            suggestions.AppendLine("**Problema de autenticaci√≥n:**");
+            suggestions.AppendLine("1. üîë Verifica usuario/contrase√±a en appsettings.json");
+            suggestions.AppendLine("2. üë§ Verifica que el usuario tenga permisos de lectura");
+            suggestions.AppendLine("3. üîê Intenta autenticarte manualmente primero con `svn info`");
         }
 
-        suggestions.AppendLine("\n?? Si el problema persiste, considera usar una working copy local.");
+        suggestions.AppendLine("\nüí° Si el problema persiste, considera usar una working copy local.");
 
         return suggestions.ToString();
     }
@@ -355,7 +355,7 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
         revision ??= "HEAD";
         limit ??= "10";
 
-        // Si hay working copy configurada, ˙sala para algunas operaciones
+        // Si hay working copy configurada, √∫sala para algunas operaciones
         var useWorkingCopy = !string.IsNullOrEmpty(WorkingCopyPath) &&
                            Directory.Exists(WorkingCopyPath) &&
                            (operation.ToLowerInvariant() == "status" || operation.ToLowerInvariant() == "info");
@@ -434,10 +434,10 @@ public class SvnVersionControlHandler : BaseVersionControlHandler
                 args.Add($"--password \"{Password}\"");
         }
 
-        // Opciones de autenticaciÛn
+        // Opciones de autenticaci√≥n
         args.Add("--non-interactive");
 
-        // Usar flag apropiado seg˙n versiÛn de SVN
+        // Usar flag apropiado seg√∫n versi√≥n de SVN
         if (_svnMajorVersion >= 1)
         {
             args.Add("--trust-server-cert");

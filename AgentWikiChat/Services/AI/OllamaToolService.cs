@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentWikiChat.Models;
@@ -34,7 +34,7 @@ public class OllamaToolService : IToolCallingService
         var provider = providers.FirstOrDefault(p => p.Name == activeProviderName);
 
         if (provider == null)
-            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuraci�n");
+            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuración");
 
         _providerName = provider.Name;
         _baseUrl = provider.BaseUrl;
@@ -65,8 +65,8 @@ public class OllamaToolService : IToolCallingService
     public IReadOnlyList<ToolDefinition> GetRegisteredTools() => _tools.AsReadOnly();
 
     /// <summary>
-    /// Env�a un mensaje con contexto y herramientas disponibles.
-    /// Ollama decidir� si necesita invocar alguna herramienta.
+    /// Envía un mensaje con contexto y herramientas disponibles.
+    /// Ollama decidirá si necesita invocar alguna herramienta.
     /// </summary>
     public async Task<ToolCallingResponse> SendMessageWithToolsAsync(
           string message,
@@ -108,7 +108,24 @@ public class OllamaToolService : IToolCallingService
             });
 
             if (result == null)
-                throw new InvalidOperationException("Respuesta vac�a de Ollama");
+                throw new InvalidOperationException("Respuesta vacía de Ollama");
+
+            // 📊 ESTIMAR MÉTRICAS DE TOKENS (Ollama no las provee nativamente)
+            var allMessages = context.ToList();
+            allMessages.Add(new Message("user", message));
+            
+            var promptTokens = TokenEstimator.EstimateTokensFromMessages(allMessages);
+            var completionTokens = TokenEstimator.EstimateTokens(result.Message.Content ?? string.Empty);
+
+            var tokenUsage = new TokenUsage
+            {
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                ModelName = _model,
+                Provider = "Ollama",
+                Timestamp = DateTime.Now,
+                EstimatedCost = 0.00m  // Ollama es local, sin costo
+            };
 
             // Convertir a formato unificado
             return new ToolCallingResponse
@@ -116,14 +133,15 @@ public class OllamaToolService : IToolCallingService
                 Content = result.Message.Content,
                 ToolCalls = result.Message.ToolCalls,
                 Role = result.Message.Role,
-                Done = result.Done
+                Done = result.Done,
+                TokenUsage = tokenUsage  // ✅ NUEVO (estimado)
             };
         }
         catch (JsonException ex)
         {
-            // Si falla la deserializaci�n, mostrar la respuesta para debug
+            // Si falla la deserialización, mostrar la respuesta para debug
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"? Error deserializando respuesta de Ollama:");
+            Console.WriteLine($"❌ Error deserializando respuesta de Ollama:");
             Console.WriteLine($"Respuesta cruda: {responseContent}");
             Console.ResetColor();
             throw new InvalidOperationException($"Error deserializando respuesta de Ollama: {ex.Message}", ex);

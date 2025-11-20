@@ -1,35 +1,35 @@
-namespace AgentWikiChat.Configuration;
+ï»¿namespace AgentWikiChat.Configuration;
 
 /// <summary>
-/// Configuración del comportamiento del agente ReAct.
+/// ConfiguraciÃ³n del comportamiento del agente ReAct.
 /// </summary>
 public class AgentConfig
 {
     /// <summary>
-    /// Máximo número de iteraciones permitidas en el loop ReAct.
-/// Previene loops infinitos.
+    /// MÃ¡ximo nÃºmero de iteraciones permitidas en el loop ReAct.
+    /// Previene loops infinitos.
     /// </summary>
     public int MaxIterations { get; set; } = 10;
 
     /// <summary>
-    /// Timeout por iteración en segundos.
+    /// Timeout por iteraciÃ³n en segundos.
     /// </summary>
     public int IterationTimeoutSeconds { get; set; } = 60;
 
     /// <summary>
-    /// Habilitar el patrón ReAct explícito (Thought -> Action -> Observation).
+    /// Habilitar el patrÃ³n ReAct explÃ­cito (Thought -> Action -> Observation).
     /// Si es false, usa el modo original de single tool call.
     /// </summary>
     public bool EnableReActPattern { get; set; } = true;
 
     /// <summary>
-    /// Habilitar el loop de múltiples herramientas.
+    /// Habilitar el loop de mÃºltiples herramientas.
     /// Permite al agente usar varias herramientas en secuencia.
     /// </summary>
     public bool EnableMultiToolLoop { get; set; } = true;
 
     /// <summary>
-  /// Mostrar pasos intermedios en la consola (para debugging).
+    /// Mostrar pasos intermedios en la consola (para debugging).
     /// </summary>
     public bool ShowIntermediateSteps { get; set; } = true;
 
@@ -46,12 +46,12 @@ public class AgentConfig
     /// <summary>
     /// Prevenir que el agente invoque la misma herramienta con los mismos argumentos consecutivamente.
     /// Ayuda a evitar loops infinitos.
- /// </summary>
+    /// </summary>
     public bool PreventDuplicateToolCalls { get; set; } = true;
 
     /// <summary>
-    /// Número máximo de veces que se puede invocar la misma herramienta consecutivamente.
-    /// Solo aplica si PreventDuplicateToolCalls está activado.
+    /// NÃºmero mÃ¡ximo de veces que se puede invocar la misma herramienta consecutivamente.
+    /// Solo aplica si PreventDuplicateToolCalls estÃ¡ activado.
     /// </summary>
     public int MaxConsecutiveDuplicates { get; set; } = 2;
 }

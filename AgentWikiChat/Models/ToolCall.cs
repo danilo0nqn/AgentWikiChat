@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AgentWikiChat.Models;
@@ -36,7 +36,7 @@ public class ToolCallFunction
     public JsonElement Arguments { get; set; } // Ollama puede enviar objeto o string
 
     /// <summary>
-    /// Obtiene los argumentos como string JSON v�lido.
+    /// Obtiene los argumentos como string JSON válido.
     /// Maneja tanto string como objetos JSON.
     /// </summary>
     public string GetArgumentsAsString()

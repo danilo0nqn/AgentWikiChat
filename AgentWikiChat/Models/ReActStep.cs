@@ -2,12 +2,12 @@ namespace AgentWikiChat.Models;
 
 /// <summary>
 /// Representa un paso en el ciclo ReAct (Reasoning + Acting).
-/// El agente piensa (Thought), actúa (Action) y observa (Observation).
+/// El agente piensa (Thought), actÃºa (Action) y observa (Observation).
 /// </summary>
 public class ReActStep
 {
     /// <summary>
-    /// Número de iteración en el loop (1, 2, 3, ...)
+    /// NÃºmero de iteraciÃ³n en el loop (1, 2, 3, ...)
     /// </summary>
     public int Iteration { get; set; }
 
@@ -19,21 +19,21 @@ public class ReActStep
     /// <summary>
     /// Nombre de la herramienta invocada (si aplica).
     /// </summary>
-  public string? ActionTool { get; set; }
+    public string? ActionTool { get; set; }
 
     /// <summary>
     /// Argumentos de la herramienta invocada.
     /// </summary>
     public string? ActionArguments { get; set; }
 
-  /// <summary>
-    /// Resultado de la ejecución de la herramienta.
-  /// </summary>
+    /// <summary>
+    /// Resultado de la ejecuciÃ³n de la herramienta.
+    /// </summary>
     public string? Observation { get; set; }
 
     /// <summary>
-    /// Indica si este paso completó el objetivo (respuesta final).
- /// </summary>
+    /// Indica si este paso completÃ³ el objetivo (respuesta final).
+    /// </summary>
     public bool IsComplete { get; set; }
 
     /// <summary>
@@ -47,7 +47,12 @@ public class ReActStep
     public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
-    /// Duración de la ejecución del paso en milisegundos.
+    /// DuraciÃ³n de la ejecuciÃ³n del paso en milisegundos.
     /// </summary>
     public long DurationMs { get; set; }
+
+    /// <summary>
+    /// MÃ©tricas de tokens usados en este paso (si estÃ¡ disponible).
+    /// </summary>
+    public TokenUsage? TokenUsage { get; set; }
 }

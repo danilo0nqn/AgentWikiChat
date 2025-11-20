@@ -1,8 +1,8 @@
-namespace AgentWikiChat.Models;
+ï»¿namespace AgentWikiChat.Models;
 
 /// <summary>
-/// Configuración para un proveedor de base de datos.
-/// Similar a AIProviderConfig, permite tener múltiples conexiones configuradas.
+/// ConfiguraciÃ³n para un proveedor de base de datos.
+/// Similar a AIProviderConfig, permite tener mÃºltiples conexiones configuradas.
 /// </summary>
 public class DatabaseProviderConfig
 {
@@ -17,7 +17,7 @@ public class DatabaseProviderConfig
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
-    /// Cadena de conexión a la base de datos.
+    /// Cadena de conexiÃ³n a la base de datos.
     /// </summary>
     public string ConnectionString { get; set; } = string.Empty;
 
@@ -27,7 +27,7 @@ public class DatabaseProviderConfig
     public int CommandTimeout { get; set; } = 30;
 
     /// <summary>
-    /// Máximo número de filas a retornar en una consulta.
+    /// MÃ¡ximo nÃºmero de filas a retornar en una consulta.
     /// </summary>
     public int MaxRowsToReturn { get; set; } = 1000;
 

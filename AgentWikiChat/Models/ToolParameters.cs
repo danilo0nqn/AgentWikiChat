@@ -1,9 +1,9 @@
-using System.Text.Json;
+Ôªøusing System.Text.Json;
 
 namespace AgentWikiChat.Models;
 
 /// <summary>
-/// Representa los par·metros estructurados extraÌdos por el LLM para un handler.
+/// Representa los par√°metros estructurados extra√≠dos por el LLM para un handler.
 /// </summary>
 public class ToolParameters
 {

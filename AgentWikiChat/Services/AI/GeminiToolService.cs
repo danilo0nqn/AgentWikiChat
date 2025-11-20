@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentWikiChat.Models;
@@ -9,7 +9,7 @@ namespace AgentWikiChat.Services.AI;
 /// <summary>
 /// Servicio para interactuar con Google Gemini usando Function Calling (Tools).
 /// Implementa la interfaz unificada IToolCallingService.
-/// Documentaci�n: https://ai.google.dev/gemini-api/docs/function-calling
+/// Documentación: https://ai.google.dev/gemini-api/docs/function-calling
 /// </summary>
 public class GeminiToolService : IToolCallingService
 {
@@ -36,7 +36,7 @@ public class GeminiToolService : IToolCallingService
         var provider = providers.FirstOrDefault(p => p.Name == activeProviderName);
 
         if (provider == null)
-            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuraci�n");
+            throw new InvalidOperationException($"Proveedor '{activeProviderName}' no encontrado en configuración");
 
         _providerName = provider.Name;
         _baseUrl = provider.BaseUrl;
@@ -68,8 +68,8 @@ public class GeminiToolService : IToolCallingService
     public IReadOnlyList<ToolDefinition> GetRegisteredTools() => _tools.AsReadOnly();
 
     /// <summary>
-    /// Env�a un mensaje con contexto y herramientas disponibles.
-    /// Gemini decidir� si necesita invocar alguna herramienta.
+    /// Envía un mensaje con contexto y herramientas disponibles.
+    /// Gemini decidirá si necesita invocar alguna herramienta.
     /// </summary>
     public async Task<ToolCallingResponse> SendMessageWithToolsAsync(
         string message,
@@ -108,7 +108,7 @@ public class GeminiToolService : IToolCallingService
         if (!response.IsSuccessStatusCode)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"? Error en Gemini API:");
+            Console.WriteLine($"❌ Error en Gemini API:");
             Console.WriteLine($"Status: {response.StatusCode}");
             Console.WriteLine($"Respuesta: {responseContent}");
             Console.ResetColor();
@@ -123,7 +123,7 @@ public class GeminiToolService : IToolCallingService
             });
 
             if (result == null || result.Candidates == null || !result.Candidates.Any())
-                throw new InvalidOperationException("Respuesta vac�a de Gemini");
+                throw new InvalidOperationException("Respuesta vacía de Gemini");
 
             var candidate = result.Candidates.First();
             var content = candidate.Content;
@@ -160,12 +160,33 @@ public class GeminiToolService : IToolCallingService
                 }
             }
 
+            // 📊 AGREGAR MÉTRICAS DE TOKENS
+            TokenUsage? tokenUsage = null;
+            if (result.UsageMetadata != null)
+            {
+                tokenUsage = new TokenUsage
+                {
+                    PromptTokens = result.UsageMetadata.PromptTokenCount,
+                    CompletionTokens = result.UsageMetadata.CandidatesTokenCount,
+                    ModelName = _model,
+                    Provider = "Gemini",
+                    Timestamp = DateTime.Now,
+                    EstimatedCost = TokenEstimator.EstimateCost(
+                        "Gemini",
+                        _model,
+                        result.UsageMetadata.PromptTokenCount,
+                        result.UsageMetadata.CandidatesTokenCount
+                    )
+                };
+            }
+
             return new ToolCallingResponse
             {
                 Content = textContent,
                 ToolCalls = toolCalls,
                 Role = "assistant",
                 Done = true,
+                TokenUsage = tokenUsage,  // ✅ NUEVO
                 Metadata = new Dictionary<string, object>
                 {
                     ["finish_reason"] = candidate.FinishReason ?? "STOP",
@@ -177,7 +198,7 @@ public class GeminiToolService : IToolCallingService
         catch (JsonException ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"? Error deserializando respuesta de Gemini:");
+            Console.WriteLine($"❌ Error deserializando respuesta de Gemini:");
             Console.WriteLine($"Respuesta cruda: {responseContent}");
             Console.ResetColor();
             throw new InvalidOperationException($"Error deserializando respuesta de Gemini: {ex.Message}", ex);
@@ -373,6 +394,9 @@ internal class GeminiGenerateContentResponse
 
     [JsonPropertyName("promptFeedback")]
     public GeminiPromptFeedback? PromptFeedback { get; set; }
+
+    [JsonPropertyName("usageMetadata")]
+    public GeminiUsageMetadata? UsageMetadata { get; set; }
 }
 
 internal class GeminiCandidate
@@ -424,6 +448,18 @@ internal class GeminiPromptFeedback
 
     [JsonPropertyName("safetyRatings")]
     public List<GeminiSafetyRating>? SafetyRatings { get; set; }
+}
+
+internal class GeminiUsageMetadata
+{
+    [JsonPropertyName("promptTokenCount")]
+    public int PromptTokenCount { get; set; }
+
+    [JsonPropertyName("candidatesTokenCount")]
+    public int CandidatesTokenCount { get; set; }
+
+    [JsonPropertyName("totalTokenCount")]
+    public int TotalTokenCount { get; set; }
 }
 
 #endregion

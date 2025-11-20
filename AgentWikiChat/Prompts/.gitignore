@@ -1,0 +1,23 @@
+# Prompts Directory - Git Ignore Configuration
+
+# Ignorar prompts personalizados/privados que contengan "private" o "custom" en el nombre
+*_private.txt
+*_custom.txt
+*_personal.txt
+*_secret.txt
+
+# Ignorar backups
+*.bak
+*.backup
+*~
+
+# Mantener los prompts oficiales del proyecto
+!SystemPrompt.txt
+!SystemPrompt_Technical.txt
+!SystemPrompt_Minimal.txt
+!README.md
+
+# Ejemplo de uso:
+# - SystemPrompt_MyCompany_private.txt  ? Ignorado (contiene "_private")
+# - SystemPrompt_Custom.txt             ? Ignorado (contiene "_custom")
+# - SystemPrompt.txt                    ? Trackeado (oficial)

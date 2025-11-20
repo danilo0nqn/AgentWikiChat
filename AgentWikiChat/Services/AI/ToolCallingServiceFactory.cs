@@ -4,19 +4,19 @@ using Microsoft.Extensions.Configuration;
 namespace AgentWikiChat.Services.AI;
 
 /// <summary>
-/// Factory para crear el servicio de Tool Calling apropiado según configuración.
+/// Factory para crear el servicio de Tool Calling apropiado segÃºn configuraciÃ³n.
 /// Soporta: Ollama, OpenAI, LM Studio, Anthropic Claude, Google Gemini.
 /// </summary>
 public class ToolCallingServiceFactory
 {
     /// <summary>
-    /// Crea el servicio de Tool Calling según el proveedor activo en configuración.
+    /// Crea el servicio de Tool Calling segÃºn el proveedor activo en configuraciÃ³n.
     /// </summary>
     public static IToolCallingService CreateService(HttpClient httpClient, IConfiguration configuration)
     {
         var activeProviderName = configuration["AI:ActiveProvider"];
         if (string.IsNullOrWhiteSpace(activeProviderName))
-            throw new InvalidOperationException("No se especificó ActiveProvider en configuración");
+            throw new InvalidOperationException("No se especificÃ³ ActiveProvider en configuraciÃ³n");
 
         var providers = configuration.GetSection("AI:Providers").Get<List<AIProviderConfig>>();
         if (providers == null || !providers.Any())

@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+Ôªøusing System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentWikiChat.Models;
@@ -7,8 +7,8 @@ namespace AgentWikiChat.Services.Handlers;
 
 /// <summary>
 /// Handler unificado para todas las operaciones de Wikipedia.
-/// Expone m˙ltiples herramientas: b˙squeda de tÌtulos y obtenciÛn de artÌculos.
-/// Arquitectura modular con cÛdigo compartido.
+/// Expone m√∫ltiples herramientas: b√∫squeda de t√≠tulos y obtenci√≥n de art√≠culos.
+/// Arquitectura modular con c√≥digo compartido.
 /// </summary>
 public class WikipediaHandler : IToolHandler
 {
@@ -19,56 +19,56 @@ public class WikipediaHandler : IToolHandler
     public WikipediaHandler()
     {
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-     _httpClient.DefaultRequestHeaders.Add("User-Agent", "AgentWikiChat/3.3 (.NET 9)");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "AgentWikiChat/3.3 (.NET 9)");
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
     }
 
-    // Esta propiedad no se usa cuando hay m˙ltiples tools, pero la mantenemos por compatibilidad
+    // Esta propiedad no se usa cuando hay m√∫ltiples tools, pero la mantenemos por compatibilidad
     public string ToolName => "wikipedia";
 
- public ToolDefinition GetToolDefinition()
+    public ToolDefinition GetToolDefinition()
     {
-        // Por defecto devuelve la tool de b˙squeda
-     return GetSearchToolDefinition();
+        // Por defecto devuelve la tool de b√∫squeda
+        return GetSearchToolDefinition();
     }
 
-    // MÈtodo adicional para obtener todas las tools
+    // M√©todo adicional para obtener todas las tools
     public List<ToolDefinition> GetAllToolDefinitions()
     {
         return new List<ToolDefinition>
         {
-    GetSearchToolDefinition(),
-      GetArticleToolDefinition()
+            GetSearchToolDefinition(),
+            GetArticleToolDefinition()
         };
     }
 
     private ToolDefinition GetSearchToolDefinition()
     {
         return new ToolDefinition
-     {
+        {
             Type = "function",
- Function = new FunctionDefinition
-          {
-Name = "search_wikipedia_titles",
-    Description = "Busca tÌtulos de artÌculos en Wikipedia. Usa esto PRIMERO.",
-        Parameters = new FunctionParameters
-              {
-       Type = "object",
-           Properties = new Dictionary<string, PropertyDefinition>
+            Function = new FunctionDefinition
             {
-["query"] = new PropertyDefinition
-   {
-      Type = "string",
-   Description = "TÈrmino a buscar"
-   },
-        ["language"] = new PropertyDefinition
-                 {
-          Type = "string",
-                 Description = "Idioma (es, en, etc.)"
-        }
+                Name = "search_wikipedia_titles",
+                Description = "Busca t√≠tulos de art√≠culos en Wikipedia. Usa esto PRIMERO.",
+                Parameters = new FunctionParameters
+                {
+                    Type = "object",
+                    Properties = new Dictionary<string, PropertyDefinition>
+                    {
+                        ["query"] = new PropertyDefinition
+                        {
+                            Type = "string",
+                            Description = "T√©rmino a buscar"
+                        },
+                        ["language"] = new PropertyDefinition
+                        {
+                            Type = "string",
+                            Description = "Idioma (es, en, etc.)"
+                        }
                     },
-        Required = new List<string> { "query" }
-      }
+                    Required = new List<string> { "query" }
+                }
             }
         };
     }
@@ -76,94 +76,94 @@ Name = "search_wikipedia_titles",
     private ToolDefinition GetArticleToolDefinition()
     {
         return new ToolDefinition
-      {
-    Type = "function",
+        {
+            Type = "function",
             Function = new FunctionDefinition
-       {
-    Name = "get_wikipedia_article",
- Description = "Obtiene contenido de un artÌculo. Usa despuÈs de search_wikipedia_titles.",
-         Parameters = new FunctionParameters
-     {
-          Type = "object",
-   Properties = new Dictionary<string, PropertyDefinition>
-{
-       ["title"] = new PropertyDefinition
-             {
-        Type = "string",
-              Description = "TÌtulo exacto del artÌculo"
-          },
-                ["language"] = new PropertyDefinition
-    {
-    Type = "string",
-      Description = "Idioma (es, en, etc.)"
-   }
-         },
-      Required = new List<string> { "title" }
-        }
+            {
+                Name = "get_wikipedia_article",
+                Description = "Obtiene contenido de un art√≠culo. Usa despu√©s de search_wikipedia_titles.",
+                Parameters = new FunctionParameters
+                {
+                    Type = "object",
+                    Properties = new Dictionary<string, PropertyDefinition>
+                    {
+                        ["title"] = new PropertyDefinition
+                        {
+                            Type = "string",
+                            Description = "T√≠tulo exacto del art√≠culo"
+                        },
+                        ["language"] = new PropertyDefinition
+                        {
+                            Type = "string",
+                            Description = "Idioma (es, en, etc.)"
+                        }
+                    },
+                    Required = new List<string> { "title" }
+                }
             }
         };
     }
 
-  public async Task<string> HandleAsync(ToolParameters parameters, MemoryService memory)
+    public async Task<string> HandleAsync(ToolParameters parameters, MemoryService memory)
     {
-        // Determinar quÈ tool se est· invocando bas·ndose en los par·metros
+        // Determinar qu√© tool se est√° invocando bas√°ndose en los par√°metros
         if (parameters.Has("query"))
         {
- return await HandleSearchAsync(parameters, memory);
+            return await HandleSearchAsync(parameters, memory);
         }
-      else if (parameters.Has("title"))
+        else if (parameters.Has("title"))
         {
-        return await HandleArticleAsync(parameters, memory);
+            return await HandleArticleAsync(parameters, memory);
         }
         else
-   {
-        return "? Par·metros inv·lidos. Usa 'query' para b˙squeda o 'title' para artÌculo.";
+        {
+            return "‚ö†Ô∏è Par√°metros inv√°lidos. Usa 'query' para b√∫squeda o 'title' para art√≠culo.";
         }
- }
+    }
 
     #region Search Wikipedia Titles
 
     private async Task<string> HandleSearchAsync(ToolParameters parameters, MemoryService memory)
     {
-  var query = parameters.GetString("query");
+        var query = parameters.GetString("query");
         var language = parameters.GetString("language", "es");
 
         LogDebug($"[Search] Query: '{query}', Lang: '{language}'");
 
-try
+        try
         {
-       var results = await WikidataSearchAsync(query, language);
+            var results = await WikidataSearchAsync(query, language);
 
-     if (results.Count == 0)
-    {
-         return $"? No se encontraron resultados para '{query}'.\n" +
-       $"?? Intenta con otros tÈrminos o en otro idioma.";
+            if (results.Count == 0)
+            {
+                return $"‚ÑπÔ∏è No se encontraron resultados para '{query}'.\n" +
+                       $"üí° Intenta con otros t√©rminos o en otro idioma.";
             }
 
-    LogDebug($"[Search] Encontrados {results.Count} resultados");
-         return FormatSearchResults(query, results);
+            LogDebug($"[Search] Encontrados {results.Count} resultados");
+            return FormatSearchResults(query, results);
         }
-   catch (Exception ex)
-   {
-        LogError($"[Search] Error: {ex.Message}");
-  return $"? Error: {ex.Message}";
+        catch (Exception ex)
+        {
+            LogError($"[Search] Error: {ex.Message}");
+            return $"‚ùå Error: {ex.Message}";
         }
     }
 
     private string FormatSearchResults(string query, List<WikipediaTitle> results)
     {
- var response = $"?? EncontrÈ {results.Count} artÌculo(s) sobre '{query}':\n\n";
+        var response = $"üìö Encontr√© {results.Count} art√≠culo(s) sobre '{query}':\n\n";
 
         for (int i = 0; i < results.Count; i++)
-     {
+        {
             var result = results[i];
-         response += $"{i + 1}. **{result.Title}**\n";
+            response += $"{i + 1}. **{result.Title}**\n";
             if (!string.IsNullOrEmpty(result.Description))
-  response += $"   {result.Description}\n";
+                response += $"   {result.Description}\n";
             response += "\n";
         }
 
-        response += "?? Usa get_wikipedia_article con el tÌtulo exacto.";
+        response += "üí° Usa get_wikipedia_article con el t√≠tulo exacto.";
         return response;
     }
 
@@ -173,19 +173,19 @@ try
 
     private async Task<string> HandleArticleAsync(ToolParameters parameters, MemoryService memory)
     {
-      var title = parameters.GetString("title");
-  var language = parameters.GetString("language", "es");
+        var title = parameters.GetString("title");
+        var language = parameters.GetString("language", "es");
 
         LogDebug($"[Article] Title: '{title}', Lang: '{language}'");
 
         try
-      {
-  return await GetWikipediaSummaryAsync(title, language);
+        {
+            return await GetWikipediaSummaryAsync(title, language);
         }
         catch (Exception ex)
         {
-     LogError($"[Article] Error: {ex.Message}");
-   return $"? Error: {ex.Message}";
+            LogError($"[Article] Error: {ex.Message}");
+            return $"‚ùå Error: {ex.Message}";
         }
     }
 
@@ -193,38 +193,38 @@ try
     {
         var safeTitle = title.Replace(" ", "_");
         var encodedTitle = Uri.EscapeDataString(safeTitle);
-    var url = $"https://{language}.wikipedia.org/api/rest_v1/page/summary/{encodedTitle}";
+        var url = $"https://{language}.wikipedia.org/api/rest_v1/page/summary/{encodedTitle}";
 
-     LogDebug($"[Summary] URL: {url}");
+        LogDebug($"[Summary] URL: {url}");
 
-      var response = await _httpClient.GetAsync(url);
+        var response = await _httpClient.GetAsync(url);
 
         if (!response.IsSuccessStatusCode)
-     {
-       LogError($"[Summary] HTTP {response.StatusCode}");
-   return $"?? No se pudo obtener '{title}' (HTTP {response.StatusCode}).\n" +
-           $"?? Verifica el tÌtulo o intenta en otro idioma.";
+        {
+            LogError($"[Summary] HTTP {response.StatusCode}");
+            return $"‚ùå No se pudo obtener '{title}' (HTTP {response.StatusCode}).\n" +
+                   $"üí° Verifica el t√≠tulo o intenta en otro idioma.";
         }
 
-  var wikiData = await response.Content.ReadFromJsonAsync<WikipediaSummaryResponse>();
+        var wikiData = await response.Content.ReadFromJsonAsync<WikipediaSummaryResponse>();
 
         if (wikiData == null)
-  {
-       LogError("[Summary] Error al deserializar");
-      return "?? Error al procesar respuesta.";
+        {
+            LogError("[Summary] Error al deserializar");
+            return "‚ùå Error al procesar respuesta.";
         }
 
-        LogDebug("[Summary] Contenido obtenido ?");
+        LogDebug("[Summary] Contenido obtenido correctamente");
 
-        var result = $"?? **{wikiData.Title}**\n\n";
+        var result = $"üìÑ **{wikiData.Title}**\n\n";
         if (!string.IsNullOrEmpty(wikiData.Description))
-            result += $"**DescripciÛn:** {wikiData.Description}\n\n";
+            result += $"**Descripci√≥n:** {wikiData.Description}\n\n";
         if (!string.IsNullOrEmpty(wikiData.Extract))
-   result += $"{wikiData.Extract}\n\n";
+            result += $"{wikiData.Extract}\n\n";
         if (!string.IsNullOrEmpty(wikiData.ContentUrls?.Desktop?.Page))
-            result += $"?? {wikiData.ContentUrls.Desktop.Page}";
+            result += $"üîó {wikiData.ContentUrls.Desktop.Page}";
 
-      return result;
+        return result;
     }
 
     #endregion
@@ -235,11 +235,11 @@ try
     {
         var encodedQuery = Uri.EscapeDataString(query);
         var searchUrl = $"https://www.wikidata.org/w/api.php?" +
- $"action=wbsearchentities&" +
-     $"search={encodedQuery}&" +
-            $"language={language}&" +
-       $"limit={MAX_RESULTS}&" +
-     $"format=json";
+                        $"action=wbsearchentities&" +
+                        $"search={encodedQuery}&" +
+                        $"language={language}&" +
+                        $"limit={MAX_RESULTS}&" +
+                        $"format=json";
 
         LogDebug($"[Wikidata] URL: {searchUrl}");
 
@@ -257,16 +257,16 @@ try
             var wikiTitle = await GetWikipediaTitleFromWikidataAsync(searchResult.Id, language);
 
             if (!string.IsNullOrEmpty(wikiTitle))
-         {
-     results.Add(new WikipediaTitle
-           {
-   Title = wikiTitle,
-     Description = searchResult.Description ?? "",
-        WikidataId = searchResult.Id
-         });
+            {
+                results.Add(new WikipediaTitle
+                {
+                    Title = wikiTitle,
+                    Description = searchResult.Description ?? "",
+                    WikidataId = searchResult.Id
+                });
 
-       LogDebug($"  - '{wikiTitle}' ({searchResult.Description})");
-         }
+                LogDebug($"  - '{wikiTitle}' ({searchResult.Description})");
+            }
         }
 
         return results;
@@ -276,28 +276,28 @@ try
     {
         try
         {
- var url = $"https://www.wikidata.org/w/api.php?" +
-            $"action=wbgetentities&" +
-            $"ids={wikidataId}&" +
-            $"props=sitelinks&" +
-             $"sitefilter={language}wiki&" +
- $"format=json";
+            var url = $"https://www.wikidata.org/w/api.php?" +
+                     $"action=wbgetentities&" +
+                     $"ids={wikidataId}&" +
+                     $"props=sitelinks&" +
+                     $"sitefilter={language}wiki&" +
+                     $"format=json";
 
-   var response = await _httpClient.GetAsync(url);
+            var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
-    var content = await response.Content.ReadAsStringAsync();
-    var entityResponse = JsonSerializer.Deserialize<WikidataEntityResponse>(content);
+            var content = await response.Content.ReadAsStringAsync();
+            var entityResponse = JsonSerializer.Deserialize<WikidataEntityResponse>(content);
 
             var sitekey = $"{language}wiki";
             var entity = entityResponse?.Entities?.Values.FirstOrDefault();
-  var sitelink = entity?.Sitelinks?.GetValueOrDefault(sitekey);
+            var sitelink = entity?.Sitelinks?.GetValueOrDefault(sitekey);
 
-         return sitelink?.Title;
+            return sitelink?.Title;
         }
         catch
         {
-    return null;
+            return null;
         }
     }
 
@@ -307,11 +307,11 @@ try
 
     private void LogDebug(string message)
     {
-    if (_debugMode)
+        if (_debugMode)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-    Console.WriteLine($"[DEBUG] {message}");
-          Console.ResetColor();
+            Console.WriteLine($"[DEBUG] {message}");
+            Console.ResetColor();
         }
     }
 
@@ -328,32 +328,32 @@ try
 
     private class WikipediaTitle
     {
- public string Title { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string WikidataId { get; set; } = string.Empty;
     }
 
     private class WikidataSearchResponse
     {
-     [JsonPropertyName("search")]
+        [JsonPropertyName("search")]
         public List<WikidataSearchResult>? Search { get; set; }
     }
 
     private class WikidataSearchResult
     {
-  [JsonPropertyName("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-      [JsonPropertyName("label")]
-      public string Label { get; set; } = string.Empty;
+        [JsonPropertyName("label")]
+        public string Label { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-    public string? Description { get; set; }
+        public string? Description { get; set; }
     }
 
     private class WikidataEntityResponse
- {
-    [JsonPropertyName("entities")]
+    {
+        [JsonPropertyName("entities")]
         public Dictionary<string, WikidataEntity>? Entities { get; set; }
     }
 
@@ -365,7 +365,7 @@ try
 
     private class WikidataSitelink
     {
-  [JsonPropertyName("title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
     }
 
@@ -380,7 +380,7 @@ try
         [JsonPropertyName("extract")]
         public string? Extract { get; set; }
 
-  [JsonPropertyName("content_urls")]
+        [JsonPropertyName("content_urls")]
         public ContentUrls? ContentUrls { get; set; }
     }
 

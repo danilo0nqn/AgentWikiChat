@@ -1,11 +1,11 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using System.Text;
 
 namespace AgentWikiChat.Services.VersionControl;
 
 /// <summary>
 /// Clase base abstracta para handlers de sistemas de control de versiones.
-/// Proporciona funcionalidad com�n para todos los proveedores.
+/// Proporciona funcionalidad común para todos los proveedores.
 /// </summary>
 public abstract class BaseVersionControlHandler : IVersionControlHandler
 {
@@ -100,14 +100,14 @@ public abstract class BaseVersionControlHandler : IVersionControlHandler
     {
         var output = new StringBuilder();
 
-        output.AppendLine($"?? **Resultado de {ProviderName} - {operation.ToUpper()}**\n");
+        output.AppendLine($"📋 **Resultado de {ProviderName} - {operation.ToUpper()}**\n");
         output.AppendLine($"**Repositorio**: `{RepositoryUrl}`");
 
         if (parameters.ContainsKey("path") && !string.IsNullOrEmpty(parameters["path"]))
             output.AppendLine($"**Path**: `{parameters["path"]}`");
 
         if (parameters.ContainsKey("revision") && !string.IsNullOrEmpty(parameters["revision"]) && parameters["revision"] != "HEAD")
-            output.AppendLine($"**Revisi�n**: `{parameters["revision"]}`");
+            output.AppendLine($"**Revisión**: `{parameters["revision"]}`");
 
         output.AppendLine();
         output.AppendLine("**Resultado:**");

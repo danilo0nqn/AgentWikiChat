@@ -1,20 +1,20 @@
-using AgentWikiChat.Models;
+ï»¿using AgentWikiChat.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace AgentWikiChat.Services.Database;
 
 /// <summary>
-/// Factory para crear handlers de base de datos según configuración.
-/// Ahora soporta múltiples proveedores configurados (patrón multi-provider).
+/// Factory para crear handlers de base de datos segÃºn configuraciÃ³n.
+/// Ahora soporta mÃºltiples proveedores configurados (patrÃ³n multi-provider).
 /// </summary>
 public static class DatabaseHandlerFactory
 {
     /// <summary>
-    /// Crea el handler apropiado según el proveedor activo configurado.
+    /// Crea el handler apropiado segÃºn el proveedor activo configurado.
     /// </summary>
     public static IDatabaseHandler CreateHandler(IConfiguration configuration)
     {
-        var dbSection = configuration.GetSection("Database");
+        var dbSection = configuration.GetSection("Tools").GetSection("Database");
         
         var activeProvider = dbSection.GetValue<string>("ActiveProvider")
             ?? throw new InvalidOperationException("Database:ActiveProvider no configurado en appsettings.json");
@@ -29,7 +29,7 @@ public static class DatabaseHandlerFactory
     }
 
     /// <summary>
-    /// Crea un handler a partir de la configuración de un proveedor específico.
+    /// Crea un handler a partir de la configuraciÃ³n de un proveedor especÃ­fico.
     /// </summary>
     private static IDatabaseHandler CreateHandlerFromConfig(DatabaseProviderConfig config)
     {
@@ -57,7 +57,7 @@ public static class DatabaseHandlerFactory
     }
 
     /// <summary>
-    /// Verifica si un tipo de base de datos está soportado.
+    /// Verifica si un tipo de base de datos estÃ¡ soportado.
     /// </summary>
     public static bool IsTypeSupported(string type)
     {
@@ -65,11 +65,11 @@ public static class DatabaseHandlerFactory
     }
 
     /// <summary>
-    /// Obtiene la configuración del proveedor activo.
+    /// Obtiene la configuraciÃ³n del proveedor activo.
     /// </summary>
     public static DatabaseProviderConfig GetActiveProviderConfig(IConfiguration configuration)
     {
-        var dbSection = configuration.GetSection("Database");
+        var dbSection = configuration.GetSection("Tools").GetSection("Database");
         
         var activeProvider = dbSection.GetValue<string>("ActiveProvider")
             ?? throw new InvalidOperationException("Database:ActiveProvider no configurado");
