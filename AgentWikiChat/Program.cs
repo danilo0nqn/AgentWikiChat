@@ -66,7 +66,9 @@ try
             EnableSelfCorrection = agentConfigSection.GetValue("EnableSelfCorrection", true),
             VerboseMode = agentConfigSection.GetValue("VerboseMode", false),
             PreventDuplicateToolCalls = agentConfigSection.GetValue("PreventDuplicateToolCalls", true),
-            MaxConsecutiveDuplicates = agentConfigSection.GetValue("MaxConsecutiveDuplicates", 2)
+            MaxConsecutiveDuplicates = agentConfigSection.GetValue("MaxConsecutiveDuplicates", 2),
+            ReserveLastIterationForFinalAnswer = agentConfigSection.GetValue("ReserveLastIterationForFinalAnswer", true),
+            IterationWarningThreshold = agentConfigSection.GetValue("IterationWarningThreshold", 2)
         };
         return agentConfig;
     });
@@ -89,6 +91,7 @@ try
         services.AddSingleton<IToolHandler>(sp => new DatabaseSchemaHandler(sp.GetRequiredService<IConfiguration>()));
     if (EnableRepository)
         services.AddSingleton<IToolHandler>(sp => new RepositoryToolHandler(sp.GetRequiredService<IConfiguration>()));
+
 
 
 
@@ -279,6 +282,9 @@ try
             Console.WriteLine($"   👁️  Pasos intermedios: {(agentConfig.ShowIntermediateSteps ? "✅" : "❌")}");
             Console.WriteLine($"   🔧 Auto-corrección: {(agentConfig.EnableSelfCorrection ? "✅" : "❌")}");
             Console.WriteLine($"   📢 Modo verbose: {(agentConfig.VerboseMode ? "✅" : "❌")}");
+            Console.WriteLine($"   🔁 Prevenir duplicados: {(agentConfig.PreventDuplicateToolCalls ? "✅" : "❌")} (máx {agentConfig.MaxConsecutiveDuplicates})");
+            Console.WriteLine($"   🎯 Reservar última iteración: {(agentConfig.ReserveLastIterationForFinalAnswer ? "✅" : "❌")}");
+            Console.WriteLine($"   ⚠️  Umbral de advertencia: {agentConfig.IterationWarningThreshold} iteraciones");
             Console.WriteLine($"   📄 System Prompt: {Path.GetFileName(systemPromptPath)}");
             Console.WriteLine();
             Console.ResetColor();
