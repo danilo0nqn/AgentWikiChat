@@ -54,4 +54,16 @@ public class AgentConfig
     /// Solo aplica si PreventDuplicateToolCalls está activado.
     /// </summary>
     public int MaxConsecutiveDuplicates { get; set; } = 2;
+
+    /// <summary>
+    /// Reservar la última iteración exclusivamente para que el LLM genere una respuesta final.
+    /// Cuando está activado, en la última iteración no se permiten tool calls, forzando una respuesta.
+    /// </summary>
+    public bool ReserveLastIterationForFinalAnswer { get; set; } = true;
+
+    /// <summary>
+    /// Número de iteraciones antes del límite en las que se debe advertir al LLM.
+    /// Por ejemplo, si es 2, se advertirá cuando queden 2 iteraciones.
+    /// </summary>
+    public int IterationWarningThreshold { get; set; } = 2;
 }
